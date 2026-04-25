@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **Governance**: This project follows Spec-Driven Development. Constitution: `.specify/memory/constitution.md` · Specs: `.specify/specs/`
+
 Single entry point for any AI agent working in this repository. Read this file in full before reading or modifying any code. Then read the documents linked below.
 
 ## Project identity

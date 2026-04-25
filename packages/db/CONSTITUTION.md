@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/db` — Constitution
 
 **Purpose:** PostgreSQL persistence via Drizzle — schema, client, and migration runner (C6).

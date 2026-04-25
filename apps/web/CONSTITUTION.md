@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/web` — Constitution
 
 **Purpose:** Next.js app — the only orchestrator. Fetches via providers, scores via the engine, persists via db, reads cache, renders to users.

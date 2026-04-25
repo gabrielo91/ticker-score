@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/types` — Constitution
 
 **Purpose:** Shared Zod schemas, TypeScript interfaces, and `Result` types — the lingua franca every other package speaks.

@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/scoring-engine` — Constitution
 
 **Purpose:** Pure-computation scoring strategies and components that turn validated market data into a composite score.

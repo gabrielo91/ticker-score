@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/data-providers` — Constitution
 
 **Purpose:** Adapters that fetch market data from external providers (Yahoo, etc.), validate responses, and surface a uniform interface to the rest of the system (C1, C2).

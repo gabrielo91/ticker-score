@@ -1,3 +1,5 @@
+> **Parent context**: [`/AGENTS.md`](../../AGENTS.md) · [`/.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+
 # `@darkscore/cache` — Constitution
 
 **Purpose:** Redis-backed cache layer that fronts every external data fetch in the platform (C2).
