@@ -6,7 +6,7 @@
 
 The DarkScore Constitution defines the **immutable governing principles** for the platform. Every agent, contributor, and tool MUST read this document before writing or modifying code. Violations are blocking.
 
-These eleven rules are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
+These twelve rules are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
 
 ---
 
