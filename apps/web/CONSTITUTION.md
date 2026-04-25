@@ -22,3 +22,16 @@ C1 (Adapter Pattern), C2 (Cache-First), C3 (Strict TypeScript), C4 (Package Boun
 ## Reminders
 - Check the cache before calling a provider; persist the report; render whatever is available even when some pieces failed.
 
+## Frontend Layering (C12)
+This package follows Presentation-Domain-Data layering. See `/.specify/specs/001-darkscore-foundation/frontend-guidelines.md` for full guidelines.
+
+- **components/**: Pure presentational React components. No fetch, no useState (except UI-only state like toggles).
+- **hooks/**: State management hooks. Delegate logic to models, fetching to gateways.
+- **lib/**: Server-side orchestration (report-generator.ts). Calls @darkscore packages.
+- **models/**: Domain objects specific to the web layer (if any). Most domain logic lives in @darkscore/types and @darkscore/scoring-engine.
+
+Anti-patterns that will be rejected:
+- fetch() inside a component
+- Business logic in JSX (e.g., inline conditionals for formatting)
+- Components with more than ~80 lines (split into sub-components)
+

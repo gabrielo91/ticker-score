@@ -66,6 +66,8 @@ These are detected by `scripts/check-no-any.ts` and `scripts/check-boundaries.ts
 - **No new files outside the task's stated scope** (C8). If you think you need one, stop and report back.
 - **No new dependencies** unless the spec lists them (C8).
 - **No edits to `turbo.json`** without spec approval (C9).
+- **No fetch in components**: Data fetching must go through gateways (data-providers) or Next.js server components, never directly in React components (C12).
+- **No business logic in JSX**: Encapsulate in domain models or utility functions. `{method.provider === "cash"}` → `{method.isDefault}` (C12).
 
 ## Pre-submission checklist
 

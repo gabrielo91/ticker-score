@@ -76,3 +76,13 @@ No feature is implemented without a spec. Every task must reference which spec s
 - Any component not shown in L3 diagrams must not be created without a spec amendment
 - Adding a new data provider or scoring strategy must follow the pattern shown in the L3 diagrams
 - When in doubt about what a package can import, the L2 diagram is the source of truth
+
+### C12 — Frontend Layering (Presentation-Domain-Data)
+- React is a **view library**, not the architecture. Components render; they do not fetch, transform, or compute.
+- The frontend follows four layers: **Views** (React components) → **Hooks** (state management) → **Domain Models** (plain TS classes) → **Data Access** (network gateways)
+- Components must be **pure presentational functions** whenever possible — receive typed props, return JSX, no side effects
+- Business logic belongs in **plain TypeScript classes/functions** in a `models/` directory, not in components or hooks
+- Hooks manage **state and lifecycle only** — they delegate computation to domain models and data fetching to gateways
+- Network clients act as **Anti-Corruption Layers** — they fetch external data and transform it into domain types. Views never call `fetch` directly.
+- Use **polymorphism over conditionals** — scattered if/else across components is shotgun surgery. Encapsulate variants in Strategy classes.
+- See `.specify/specs/001-darkscore-foundation/frontend-guidelines.md` for detailed patterns and examples.
