@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AMZN Dark Risk Score Report</title>
+<title>ALB Dark Risk Score Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,7 +47,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .ticker-name { font-size: 14px; color: var(--text-dim); }
 .ticker-sector { font-size: 11px; color: var(--text-muted); }
 .ticker-price { font-family: var(--font-mono); font-size: 32px; font-weight: 700; margin-left: auto; }
-.ticker-change { font-family: var(--font-mono); font-size: 14px; color: var(--green); }
+.ticker-change { font-family: var(--font-mono); font-size: 14px; color: var(--red); }
 .range-bar-wrap { width: 100%; margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
 .range-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
 .range-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); border-radius: 2px; }
@@ -75,13 +75,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; margin-bottom: 24px; }
 .gauge-ring { width: 200px; height: 200px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
 .gauge-bg { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) 90deg, var(--amber) 140deg, var(--red) 280deg, var(--red) 360deg); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); opacity: .25; }
-.gauge-fill { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) calc(var(--angle) * .75), transparent calc(var(--angle) * .75)); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); animation: gaugeIn 1.5s ease-out forwards; --angle: 0deg; }
-@keyframes gaugeIn { to { --angle: 136.8deg; } }
+.gauge-fill { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--amber) 0deg, var(--amber) calc(var(--angle) * .75), transparent calc(var(--angle) * .75)); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); animation: gaugeIn 1.5s ease-out forwards; --angle: 0deg; }
+@keyframes gaugeIn { to { --angle: 223.2deg; } }
 @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 .gauge-center { position: relative; text-align: center; z-index: 1; }
 .gauge-score { font-family: var(--font-mono); font-size: 48px; font-weight: 700; }
 .gauge-max { font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); }
-.gauge-label { margin-top: 12px; font-size: 16px; font-weight: 600; color: var(--green); letter-spacing: 1px; }
+.gauge-label { margin-top: 12px; font-size: 16px; font-weight: 600; color: var(--amber); letter-spacing: 1px; }
 
 /* Chart */
 .chart-wrap { padding: 20px; margin-bottom: 24px; }
@@ -132,32 +132,34 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 </head>
 <body>
 <div class="report">
+
+
 <!-- PAGE 1 -->
 <div class="page" id="page1">
 
 <!-- Ticker Bar -->
 <div class="card ticker-bar">
   <div>
-    <div class="ticker-logo">AMZN</div>
-    <div class="ticker-name">Amazon.com, Inc.</div>
-    <div class="ticker-sector">Consumer Discretionary / Cloud</div>
+    <div class="ticker-logo">ALB</div>
+    <div class="ticker-name">Albemarle Corporation</div>
+    <div class="ticker-sector">Basic Materials / Specialty Chemicals</div>
   </div>
   <div style="text-align:right;margin-left:auto">
-    <div class="ticker-price">$263.99</div>
-    <div class="ticker-change">+$8.91 (+3.49%)</div>
+    <div class="ticker-price">$193.14</div>
+    <div class="ticker-change">-$1.08 (-0.56%)</div>
   </div>
   <div class="range-bar-wrap">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;width:100%">52-Week Range</div>
-    <span>$165.29</span>
+    <span>$50.85</span>
     <div class="range-track">
       <div class="range-fill" style="width:100%"></div>
-      <div class="range-marker" style="left:99.5%"></div>
+      <div class="range-marker" style="left:86.3%"></div>
     </div>
-    <span>$264.50</span>
+    <span>$215.71</span>
   </div>
   <div class="ticker-stats">
-    <span>Mkt Cap: <strong>$2.83T</strong></span>
-    <span>Volume: <strong>53.35M</strong></span>
+    <span>Mkt Cap: <strong>$22.7B</strong></span>
+    <span>Volume: <strong>1.55M</strong></span>
   </div>
 </div>
 
@@ -168,21 +170,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
     <div class="gauge-bg"></div>
     <div class="gauge-fill"></div>
     <div class="gauge-center">
-      <div class="gauge-score">38</div>
+      <div class="gauge-score">62</div>
       <div class="gauge-max">/ 100</div>
     </div>
   </div>
-  <div class="gauge-label">Moderate-Low Risk</div>
+  <div class="gauge-label">Moderate-High Risk</div>
 </div>
 
 <!-- KPI Strip -->
 <div class="grid-6">
-  <div class="card kpi-card"><div class="kpi-label">P/E (TTM)</div><div class="kpi-value status-amber">34.9x</div><div class="kpi-status status-amber">Above sector avg</div></div>
-  <div class="card kpi-card"><div class="kpi-label">Fwd P/E</div><div class="kpi-value status-green">28.85x</div><div class="kpi-status status-green">Compression</div></div>
-  <div class="card kpi-card"><div class="kpi-label">Revenue TTM</div><div class="kpi-value status-green">$716.9B</div><div class="kpi-status status-green">Record</div></div>
-  <div class="card kpi-card"><div class="kpi-label">Net Margin</div><div class="kpi-value status-green">10.8%</div><div class="kpi-status status-green">Expanding</div></div>
-  <div class="card kpi-card"><div class="kpi-label">FCF TTM</div><div class="kpi-value status-red">$7.7B</div><div class="kpi-status status-red">Collapsed 71%</div></div>
-  <div class="card kpi-card"><div class="kpi-label">Debt/Equity</div><div class="kpi-value status-green">43.4%</div><div class="kpi-status status-green">Manageable</div></div>
+  <div class="card kpi-card"><div class="kpi-label">P/E (TTM)</div><div class="kpi-value status-red">N/A</div><div class="kpi-status status-red">Net loss</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Fwd P/E</div><div class="kpi-value status-red">~250x</div><div class="kpi-status status-red">Deep recovery</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Revenue TTM</div><div class="kpi-value status-amber">$5.14B</div><div class="kpi-status status-amber">-44% YoY</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Net Margin</div><div class="kpi-value status-red">Negative</div><div class="kpi-status status-red">Net loss</div></div>
+  <div class="card kpi-card"><div class="kpi-label">FCF TTM</div><div class="kpi-value status-green">$692M</div><div class="kpi-status status-green">Positive</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Debt/Equity</div><div class="kpi-value status-amber">~64%</div><div class="kpi-status status-amber">Elevated</div></div>
 </div>
 
 <!-- 12-Month Price Chart -->
@@ -206,11 +208,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
     </g>
     <!-- Y-axis labels -->
     <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">
-      <text x="52" y="34" text-anchor="end">$280</text>
-      <text x="52" y="101" text-anchor="end">$250</text>
-      <text x="52" y="169" text-anchor="end">$220</text>
-      <text x="52" y="236" text-anchor="end">$190</text>
-      <text x="52" y="304" text-anchor="end">$160</text>
+      <text x="52" y="34" text-anchor="end">$200</text>
+      <text x="52" y="101" text-anchor="end">$170</text>
+      <text x="52" y="169" text-anchor="end">$140</text>
+      <text x="52" y="236" text-anchor="end">$110</text>
+      <text x="52" y="304" text-anchor="end">$80</text>
     </g>
     <!-- X-axis labels -->
     <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">
@@ -228,16 +230,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
       <text x="958" y="325">Apr</text>
     </g>
     <!-- Gradient fill area -->
-    <polygon points="100,207.5 178,207.5 256,149.6 334,159.75 412,178.5 490,157.5 568,153.2 646,158 724,141.1 802,199.5 880,203 958,92.5 958,300 100,300" fill="url(#chartGrad)"/>
+    <polygon points="100,300 178,266.25 256,232.5 334,243.75 412,255 490,221.25 568,187.5 646,165 724,131.25 802,59.25 880,111 958,45.75 958,300 100,300" fill="url(#chartGrad)"/>
     <!-- Price line -->
-    <polyline points="100,207.5 178,207.5 256,149.6 334,159.75 412,178.5 490,157.5 568,153.2 646,158 724,141.1 802,199.5 880,203 958,92.5" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="100,300 178,266.25 256,232.5 334,243.75 412,255 490,221.25 568,187.5 646,165 724,131.25 802,59.25 880,111 958,45.75" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     <!-- Annotation dots -->
-    <circle cx="568" cy="153.2" r="6" fill="var(--red)" opacity=".9"/>
-    <text x="568" y="140" fill="var(--red)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">52W High $258.60</text>
-    <circle cx="802" cy="199.5" r="6" fill="var(--amber)" opacity=".9"/>
-    <text x="802" y="220" fill="var(--amber)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">$200B CapEx shock</text>
-    <circle cx="958" cy="92.5" r="6" fill="var(--blue)" opacity=".9"/>
-    <text x="920" y="80" fill="var(--blue)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="end">Q1 earnings Apr 29</text>
+    <circle cx="724" cy="131.25" r="6" fill="var(--green)" opacity=".9"/>
+    <text x="724" y="118" fill="var(--green)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">Lithium price recovery</text>
+    <circle cx="802" cy="59.25" r="6" fill="var(--blue)" opacity=".9"/>
+    <text x="802" y="46" fill="var(--blue)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">Q4 earnings beat rev</text>
+    <circle cx="958" cy="45.75" r="6" fill="var(--red)" opacity=".9"/>
+    <text x="920" y="33" fill="var(--red)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="end">Baird downgrade</text>
   </svg>
 </div>
 
@@ -246,50 +248,51 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 <div class="grid-3">
   <div class="card">
     <div class="card-title">P/E Ratio</div>
-    <div class="data-item"><span class="data-item-label">TTM P/E</span><span class="data-item-value status-amber">34.9x</span></div>
-    <div class="data-item"><span class="data-item-label">Forward P/E</span><span class="data-item-value status-green">28.85x</span></div>
-    <div class="data-item"><span class="data-item-label">P/S</span><span class="data-item-value status-amber">3.7x</span></div>
-    <div class="card-subtitle">Above S&P ~21x avg, below 10-yr ~60x avg. 23.7% compression YoY.</div>
+    <div class="data-item"><span class="data-item-label">TTM P/E</span><span class="data-item-value status-red">N/A (loss)</span></div>
+    <div class="data-item"><span class="data-item-label">Forward P/E</span><span class="data-item-value status-red">~250x</span></div>
+    <div class="data-item"><span class="data-item-label">P/S</span><span class="data-item-value status-amber">4.46x</span></div>
+    <div class="card-subtitle">Deep losses priced into forward multiples; awaiting earnings inflection.</div>
   </div>
   <div class="card">
     <div class="card-title">Enterprise Value</div>
-    <div class="data-item"><span class="data-item-label">EV/EBITDA</span><span class="data-item-value status-green">18.8x</span></div>
-    <div class="data-item"><span class="data-item-label">EV/Revenue</span><span class="data-item-value status-amber">~3.8x</span></div>
-    <div class="data-item"><span class="data-item-label">PEG Ratio</span><span class="data-item-value status-green">~1.2x</span></div>
-    <div class="card-subtitle">Reasonable for growth profile. PEG &lt; 1.5 is attractive.</div>
+    <div class="data-item"><span class="data-item-label">EV/EBITDA</span><span class="data-item-value status-amber">~22x</span></div>
+    <div class="data-item"><span class="data-item-label">EV/Revenue</span><span class="data-item-value status-amber">~5x</span></div>
+    <div class="data-item"><span class="data-item-label">PEG Ratio</span><span class="data-item-value status-red">N/A</span></div>
+    <div class="card-subtitle">Negative earnings make PEG meaningless; EV multiples elevated for cyclical.</div>
   </div>
   <div class="card">
     <div class="card-title">Relative Value</div>
-    <div class="data-item"><span class="data-item-label">vs MSFT (30x fwd)</span><span class="data-item-value status-green">Cheaper</span></div>
-    <div class="data-item"><span class="data-item-label">vs AAPL (31x fwd)</span><span class="data-item-value status-green">Cheaper</span></div>
-    <div class="data-item"><span class="data-item-label">vs GOOG (20x fwd)</span><span class="data-item-value status-amber">Premium</span></div>
-    <div class="card-subtitle">Trades at discount to mega-cap peers except Alphabet.</div>
+    <div class="data-item"><span class="data-item-label">vs LTHM/SQM peers</span><span class="data-item-value status-amber">Premium</span></div>
+    <div class="data-item"><span class="data-item-label">52W Performance</span><span class="data-item-value status-green">+249.6%</span></div>
+    <div class="data-item"><span class="data-item-label">vs 10-yr avg</span><span class="data-item-value status-green">Below</span></div>
+    <div class="card-subtitle">Premium to lithium peers but well below 10-yr historical valuation peaks.</div>
   </div>
 </div>
+
 
 <!-- Financial Health Cards -->
 <div class="section-title">Financial Health</div>
 <div class="grid-3">
   <div class="card">
     <div class="card-title">Balance Sheet</div>
-    <div class="data-item"><span class="data-item-label">Cash</span><span class="data-item-value status-green">$86.8B</span></div>
-    <div class="data-item"><span class="data-item-label">Total Debt</span><span class="data-item-value status-amber">~$67B</span></div>
-    <div class="data-item"><span class="data-item-label">D/E</span><span class="data-item-value status-green">43.4%</span></div>
-    <div class="data-item"><span class="data-item-label">Current Ratio</span><span class="data-item-value status-green">Healthy</span></div>
+    <div class="data-item"><span class="data-item-label">Cash</span><span class="data-item-value status-green">$1.6B</span></div>
+    <div class="data-item"><span class="data-item-label">Total Debt</span><span class="data-item-value status-amber">$3.2B</span></div>
+    <div class="data-item"><span class="data-item-label">D/E</span><span class="data-item-value status-amber">~64%</span></div>
+    <div class="data-item"><span class="data-item-label">Liquidity</span><span class="data-item-value status-green">$3.2B</span></div>
   </div>
   <div class="card">
     <div class="card-title">Cash Flow</div>
-    <div class="data-item"><span class="data-item-label">OCF TTM</span><span class="data-item-value status-green">$139.5B</span></div>
-    <div class="data-item"><span class="data-item-label">FCF TTM</span><span class="data-item-value status-red">$7.7B</span></div>
-    <div class="data-item"><span class="data-item-label">CapEx</span><span class="data-item-value status-red">$131.8B</span></div>
-    <div class="card-subtitle">FCF collapsed 71% due to massive PP&E surge. OCF +20.4% YoY.</div>
+    <div class="data-item"><span class="data-item-label">OCF TTM</span><span class="data-item-value status-green">$1.3B</span></div>
+    <div class="data-item"><span class="data-item-label">FCF TTM</span><span class="data-item-value status-green">$692M</span></div>
+    <div class="data-item"><span class="data-item-label">CapEx</span><span class="data-item-value status-green">$590M</span></div>
+    <div class="card-subtitle">OCF >100% conversion. CapEx down 65% YoY as capacity build slows.</div>
   </div>
   <div class="card">
     <div class="card-title">Profitability</div>
-    <div class="data-item"><span class="data-item-label">Gross Margin</span><span class="data-item-value status-green">50.3%</span></div>
-    <div class="data-item"><span class="data-item-label">Operating Margin</span><span class="data-item-value status-green">~11.2%</span></div>
-    <div class="data-item"><span class="data-item-label">Net Margin</span><span class="data-item-value status-green">10.8%</span></div>
-    <div class="data-item"><span class="data-item-label">ROE</span><span class="data-item-value status-green">22.3%</span></div>
+    <div class="data-item"><span class="data-item-label">Gross Margin</span><span class="data-item-value status-amber">~25%</span></div>
+    <div class="data-item"><span class="data-item-label">Operating Margin</span><span class="data-item-value status-red">Negative</span></div>
+    <div class="data-item"><span class="data-item-label">Net Margin</span><span class="data-item-value status-red">Negative</span></div>
+    <div class="data-item"><span class="data-item-label">Adj EBITDA Q4</span><span class="data-item-value status-amber">$269M (+7%)</span></div>
   </div>
 </div>
 
@@ -297,25 +300,24 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 <div class="section-title">Growth</div>
 <div class="grid-3">
   <div class="card">
-    <div class="card-title">Revenue Growth</div>
-    <div class="data-item"><span class="data-item-label">FY2025</span><span class="data-item-value status-green">$716.9B (+11%)</span></div>
-    <div class="data-item"><span class="data-item-label">FY2026E</span><span class="data-item-value status-green">~$821B (+14.5%)</span></div>
-    <div class="data-item"><span class="data-item-label">Q4 2025</span><span class="data-item-value status-green">$213.4B (+14%)</span></div>
+    <div class="card-title">Revenue</div>
+    <div class="data-item"><span class="data-item-label">FY2025</span><span class="data-item-value status-red">$5.14B (-44%)</span></div>
+    <div class="data-item"><span class="data-item-label">Q4 2025</span><span class="data-item-value status-green">$1.4B (+16% QoQ)</span></div>
+    <div class="data-item"><span class="data-item-label">Energy Storage Vol</span><span class="data-item-value status-green">+17%</span></div>
+    <div class="card-subtitle">FY decline driven by lithium price collapse; Q4 marks recovery inflection.</div>
   </div>
   <div class="card">
-    <div class="card-title">Segment Growth</div>
-    <div class="data-item"><span class="data-item-label">AWS</span><span class="data-item-value status-green">+24% YoY</span></div>
-    <div class="data-item"><span class="data-item-label">Advertising</span><span class="data-item-value status-green">+22% YoY</span></div>
-    <div class="data-item"><span class="data-item-label">North America</span><span class="data-item-value status-amber">+10%</span></div>
-    <div class="data-item"><span class="data-item-label">International</span><span class="data-item-value status-green">+17%</span></div>
-    <div class="card-subtitle">AWS fastest growth in 13 quarters.</div>
+    <div class="card-title">Segment</div>
+    <div class="data-item"><span class="data-item-label">Energy Storage</span><span class="data-item-value status-green">+17% / +25% EBITDA</span></div>
+    <div class="data-item"><span class="data-item-label">Ketjen</span><span class="data-item-value status-green">+13% / +39% EBITDA</span></div>
+    <div class="data-item"><span class="data-item-label">Specialties</span><span class="data-item-value status-amber">Stable</span></div>
+    <div class="card-subtitle">Volume growth across segments with strong adj EBITDA leverage.</div>
   </div>
   <div class="card">
-    <div class="card-title">Earnings Growth</div>
-    <div class="data-item"><span class="data-item-label">EPS TTM</span><span class="data-item-value status-green">$7.17</span></div>
-    <div class="data-item"><span class="data-item-label">Net Income TTM</span><span class="data-item-value status-green">$77.7B</span></div>
-    <div class="data-item"><span class="data-item-label">FY2026E NI</span><span class="data-item-value status-green">~$85.1B (+9.6%)</span></div>
-    <div class="data-item"><span class="data-item-label">FY2026E EBITDA</span><span class="data-item-value status-green">+44.8%</span></div>
+    <div class="card-title">Outlook</div>
+    <div class="data-item"><span class="data-item-label">2026 CapEx</span><span class="data-item-value status-green">$550–600M</span></div>
+    <div class="data-item"><span class="data-item-label">Cost Savings</span><span class="data-item-value status-green">$100–150M</span></div>
+    <div class="data-item"><span class="data-item-label">Li Demand 2030</span><span class="data-item-value status-green">+10%</span></div>
   </div>
 </div>
 
@@ -323,25 +325,25 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 <div class="card" style="margin-bottom:24px">
   <div class="section-title">Score Breakdown</div>
   <div class="score-bar-wrap">
-    <div class="score-bar-header"><span class="score-bar-label">Valuation Score</span><span class="score-bar-value">72 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
-    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="72%"></div></div>
-    <div class="score-bar-note">Fair</div>
+    <div class="score-bar-header"><span class="score-bar-label">Valuation Score</span><span class="score-bar-value">35 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--red),var(--amber))" data-width="35%"></div></div>
+    <div class="score-bar-note">Challenged</div>
   </div>
   <div class="score-bar-wrap">
-    <div class="score-bar-header"><span class="score-bar-label">Financial Health Score</span><span class="score-bar-value">58 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
-    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="58%"></div></div>
-    <div class="score-bar-note">Strong despite FCF pressure</div>
+    <div class="score-bar-header"><span class="score-bar-label">Financial Health Score</span><span class="score-bar-value">55 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="55%"></div></div>
+    <div class="score-bar-note">Adequate</div>
   </div>
   <div class="score-bar-wrap">
-    <div class="score-bar-header"><span class="score-bar-label">Growth Score</span><span class="score-bar-value">85 / 100 <span style="color:var(--text-muted);font-size:11px">(30% weight)</span></span></div>
-    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--green),var(--cyan))" data-width="85%"></div></div>
-    <div class="score-bar-note">Excellent</div>
+    <div class="score-bar-header"><span class="score-bar-label">Growth Score</span><span class="score-bar-value">50 / 100 <span style="color:var(--text-muted);font-size:11px">(30% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="50%"></div></div>
+    <div class="score-bar-note">Recovery mode</div>
   </div>
   <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
     <span style="font-size:13px;font-weight:600">Composite Risk Score</span>
-    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--green)">38 / 100</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--amber)">62 / 100</span>
   </div>
-  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Higher component scores → lower risk. Inverted composite.</div>
+  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Higher composite → higher risk. Lithium cyclicality + negative EPS keep score elevated.</div>
 </div>
 
 </div>
@@ -354,35 +356,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   <div class="section-title">Quarterly Trend</div>
   <table class="q-table">
     <thead>
-      <tr><th>Quarter</th><th>Revenue ($B)</th><th>Rev Growth</th><th>Op Income ($B)</th><th>Op Margin</th><th>AWS Rev ($B)</th><th>AWS Growth</th><th>EPS</th></tr>
+      <tr><th>Quarter</th><th>Revenue ($B)</th><th>Rev Growth</th><th>Adj EBITDA ($M)</th><th>EBITDA Growth</th><th>Energy Storage Vol</th><th>EPS</th></tr>
     </thead>
     <tbody>
-      <tr><td>Q1 2025</td><td>$155.7</td><td>+9%</td><td>$18.4</td><td>11.8%</td><td>$29.3</td><td>+17%</td><td>$1.59</td></tr>
-      <tr><td>Q2 2025</td><td>$190.1</td><td>+10%</td><td>$23.2</td><td>12.2%</td><td>$33.0</td><td>+19%</td><td>$1.87</td></tr>
-      <tr><td>Q3 2025</td><td>$176.2</td><td>+11%</td><td>$17.4*</td><td>9.9%</td><td>$33.0</td><td>+22%</td><td>$1.43</td></tr>
-      <tr><td>Q4 2025</td><td>$213.4</td><td>+14%</td><td>$21.2</td><td>9.9%</td><td>$35.6</td><td>+24%</td><td>$2.12</td></tr>
+      <tr><td>Q1 2025</td><td>$1.08</td><td>-13%</td><td>~$200</td><td>—</td><td>—</td><td>-$1.46</td></tr>
+      <tr><td>Q2 2025</td><td>$1.33</td><td>+24%</td><td>~$230</td><td>—</td><td>—</td><td>-$0.81</td></tr>
+      <tr><td>Q3 2025</td><td>$1.31</td><td>-2%</td><td>~$250</td><td>—</td><td>+17%</td><td>-$0.90</td></tr>
+      <tr><td>Q4 2025</td><td>$1.40</td><td>+16%</td><td>$269</td><td>+7%</td><td>+17%</td><td>-$3.52*</td></tr>
     </tbody>
   </table>
-  <div style="font-size:10px;color:var(--text-muted);margin-top:8px">*Q3 includes $2.5B FTC settlement + $1.8B severance. Adj. would be $21.7B.</div>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:8px">*Q4 includes tax write-downs and Ketjen asset impairment.</div>
 </div>
 
 <!-- Latest Earnings -->
 <div class="card" style="margin-bottom:24px">
-  <div class="section-title">Latest Earnings & Delivery Update</div>
+  <div class="section-title">Latest Earnings & Outlook</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div>
-      <div class="card-title">Q4 2025 Results <span style="font-size:11px;color:var(--text-muted)">(reported Feb 2026)</span></div>
-      <div class="data-item"><span class="data-item-label">Revenue</span><span class="data-item-value status-green">$213.4B ✅ beat $211.3B est.</span></div>
-      <div class="data-item"><span class="data-item-label">EPS</span><span class="data-item-value">$2.12</span></div>
-      <div class="data-item"><span class="data-item-label">AWS Backlog</span><span class="data-item-value status-green">$244B (+40% YoY)</span></div>
-      <div class="data-item"><span class="data-item-label">Chips Biz</span><span class="data-item-value status-green">$10B+ run rate</span></div>
+      <div class="card-title">Q4 2025 Results</div>
+      <div class="data-item"><span class="data-item-label">Revenue</span><span class="data-item-value status-green">$1.4B ✅ beat est.</span></div>
+      <div class="data-item"><span class="data-item-label">Adj EBITDA</span><span class="data-item-value status-green">$269M (+7%)</span></div>
+      <div class="data-item"><span class="data-item-label">Net Loss</span><span class="data-item-value status-red">-$414M*</span></div>
+      <div class="data-item"><span class="data-item-label">EPS</span><span class="data-item-value">-$3.52</span></div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px">*Driven by one-time tax & Ketjen write-down.</div>
     </div>
     <div>
       <div class="card-title">Upcoming</div>
-      <div class="data-item"><span class="data-item-label">Q1 2026 Guidance</span><span class="data-item-value">$173.5B–$178.5B</span></div>
-      <div class="data-item"><span class="data-item-label">Consensus</span><span class="data-item-value">~$177B</span></div>
-      <div class="data-item"><span class="data-item-label">Next Earnings</span><span class="data-item-value status-blue" style="color:var(--blue)">April 29, 2026</span></div>
-      <div class="data-item"><span class="data-item-label">Q1 EPS Est.</span><span class="data-item-value">$1.62</span></div>
+      <div class="data-item"><span class="data-item-label">Q1 2026 Earnings</span><span class="data-item-value" style="color:var(--blue)">May 6, 2026</span></div>
+      <div class="data-item"><span class="data-item-label">Analyst EPS Est.</span><span class="data-item-value status-green">$0.78</span></div>
+      <div class="data-item"><span class="data-item-label">2026 CapEx Plan</span><span class="data-item-value">$550–600M</span></div>
+      <div class="data-item"><span class="data-item-label">Cost Savings Target</span><span class="data-item-value status-green">$100–150M</span></div>
     </div>
   </div>
 </div>
@@ -393,25 +396,25 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   <div class="card" style="border-color:rgba(34,197,94,.25)">
     <div class="card-title" style="color:var(--green)">⬆ Catalysts</div>
     <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
-      <li>AWS AI revenue &gt;$15B annualized — demand outpacing supply</li>
-      <li>Custom silicon (Trainium/Graviton) $20B+ run rate, doubling YoY</li>
-      <li>Advertising $21.3B/Q growing 22% — high-margin</li>
-      <li>AWS backlog $244B (+40%) locks in multi-year revenue</li>
-      <li>Margin mix shift: AWS + Ads + 3P growing faster than retail</li>
-      <li>FCF inflection expected as capex normalizes late 2026</li>
-      <li>Analyst consensus: ~$285-$325 targets (Overweight/Buy)</li>
+      <li>Lithium price recovery — prices up significantly from 2024 lows</li>
+      <li>$450M cost/productivity savings achieved in 2025</li>
+      <li>Energy Storage volume +17% with pricing improvements</li>
+      <li>Ketjen divestiture to simplify business</li>
+      <li>2030 lithium demand forecast up 10%</li>
+      <li>Positive FCF achievable at current lithium pricing</li>
+      <li>Stock up 249.6% in 52 weeks — momentum</li>
     </ol>
   </div>
   <div class="card" style="border-color:rgba(239,68,68,.25)">
     <div class="card-title" style="color:var(--red)">⬇ Risks</div>
     <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
-      <li>$200B 2026 CapEx — FCF collapsed 71% to $7.7B</li>
-      <li>FTC antitrust trial set for Feb 2027</li>
-      <li>Intensifying cloud competition (Azure, GCP gaining share)</li>
-      <li>Walmart e-commerce competition accelerating</li>
-      <li>Tariff/trade war uncertainty impacting international</li>
-      <li>Capital return uncertainty — no buyback announced</li>
-      <li>Macro slowdown risk — consumer spending sensitivity</li>
+      <li>Lithium price volatility — cyclical commodity exposure</li>
+      <li>Negative EPS — no profitability yet</li>
+      <li>$3.2B total debt load</li>
+      <li>Tariff/trade policy uncertainty</li>
+      <li>Baird downgrade on lithium supply risks</li>
+      <li>China lithium oversupply concerns</li>
+      <li>Customer concentration in EV supply chain</li>
     </ol>
   </div>
 </div>
@@ -425,34 +428,34 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
       <span>Strong Sell</span><span>Sell</span><span>Hold</span><span>Buy</span><span>Strong Buy</span>
     </div>
     <div style="height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green),#10b981);position:relative">
-      <div style="position:absolute;left:72%;top:-4px;width:4px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.5)"></div>
+      <div style="position:absolute;left:50%;top:-4px;width:4px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.5)"></div>
     </div>
-    <div style="text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--green)">BUY</div>
+    <div style="text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--amber)">HOLD</div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
     <span style="font-size:13px;font-weight:600">Overall Risk Score</span>
-    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--green)">38 / 100 — Moderate-Low</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--amber)">62 / 100 — Moderate-High</span>
   </div>
-  <p style="font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:20px">Amazon trades at a reasonable ~29x forward earnings with the strongest AWS growth in 13 quarters. The $200B capex cycle is the key risk, but $244B backlog and AI monetization provide visibility. FCF pressure is transitory if capex normalizes as guided. Buy on any weakness below $240.</p>
+  <p style="font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:20px">Albemarle is a leveraged lithium recovery play. The 250% rally prices in significant upside, but negative earnings and commodity cyclicality keep risk elevated. Cost savings and volume growth are encouraging, but profitability depends on sustained lithium price recovery. Hold for lithium bulls; wait for earnings inflection for new positions.</p>
   <!-- Price Targets -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
     <div style="text-align:center;padding:14px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:4px">Bear</div>
-      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$220</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$120</div>
     </div>
     <div style="text-align:center;padding:14px;background:rgba(59,130,246,.08);border-radius:8px;border:1px solid rgba(59,130,246,.2)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:4px">Base</div>
-      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$285</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$200</div>
     </div>
     <div style="text-align:center;padding:14px;background:rgba(34,197,94,.08);border-radius:8px;border:1px solid rgba(34,197,94,.2)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:4px">Bull</div>
-      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$325</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$280</div>
     </div>
   </div>
 </div>
 
 <div style="text-align:center;font-size:11px;color:var(--text-muted);padding:16px 0">
-  Generated by Dark Risk Score Engine · Data as of April 24, 2026 · Not financial advice.
+  Generated by Dark Risk Score Engine · Data as of April 25, 2026 · Not financial advice.
 </div>
 
 </div>
@@ -473,36 +476,37 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function copyReport() {
-  const text = `AMZN DARK RISK SCORE REPORT
+  const text = `ALB DARK RISK SCORE REPORT
 ===========================
-Amazon.com, Inc. (AMZN)
-Price: $263.99 (+$8.91, +3.49%)
-52-Week Range: $165.29 – $264.50
-Market Cap: $2.83T | Volume: 53.35M
+Albemarle Corporation (ALB)
+Price: $193.14 (-$1.08, -0.56%)
+52-Week Range: $50.85 – $215.71
+Market Cap: $22.7B | Volume: 1.55M
 
-RISK SCORE: 38/100 — Moderate-Low Risk
-Rating: BUY
+RISK SCORE: 62/100 — Moderate-High Risk
+Rating: HOLD
 
 KEY METRICS
-• P/E (TTM): 34.9x | Fwd P/E: 28.85x
-• Revenue TTM: $716.9B | Net Margin: 10.8%
-• FCF TTM: $7.7B (collapsed 71%) | D/E: 43.4%
-• OCF TTM: $139.5B (+20.4% YoY)
-• Gross Margin: 50.3% | ROE: 22.3%
+• P/E (TTM): N/A (loss) | Fwd P/E: ~250x
+• Revenue TTM: $5.14B (-44% YoY) | Net Margin: Negative
+• FCF TTM: $692M | D/E: ~64%
+• OCF TTM: $1.3B | CapEx: $590M (-65% YoY)
+• Adj EBITDA Q4: $269M (+7%)
 
 SCORE BREAKDOWN
-• Valuation: 72/100 (35% weight)
-• Financial Health: 58/100 (35% weight)
-• Growth: 85/100 (30% weight)
+• Valuation: 35/100 (35% weight) — Challenged
+• Financial Health: 55/100 (35% weight) — Adequate
+• Growth: 50/100 (30% weight) — Recovery mode
 
 GROWTH HIGHLIGHTS
-• AWS: +24% YoY (fastest in 13 quarters)
-• Advertising: +22% YoY
-• FY2026E Revenue: ~$821B (+14.5%)
+• Energy Storage: +17% vol, +25% adj EBITDA
+• Ketjen: +13% vol, +39% adj EBITDA
+• Q4 2025 Revenue: $1.4B (+16% QoQ)
+• 2030 Lithium demand forecast +10%
 
-PRICE TARGETS: Bear $220 | Base $285 | Bull $325
+PRICE TARGETS: Bear $120 | Base $200 | Bull $280
 
-Next Earnings: April 29, 2026
+Next Earnings: May 6, 2026 (Est. EPS $0.78)
 Generated by Dark Risk Score Engine`;
 
   navigator.clipboard.writeText(text).then(() => {
@@ -515,4 +519,3 @@ Generated by Dark Risk Score Engine`;
 
 </body>
 </html>
-
