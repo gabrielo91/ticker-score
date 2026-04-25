@@ -6,7 +6,7 @@
 
 The DarkScore Constitution defines the **immutable governing principles** for the platform. Every agent, contributor, and tool MUST read this document before writing or modifying code. Violations are blocking.
 
-These twelve rules are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
+These thirteen rules (C1–C13) are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
 
 ---
 
@@ -86,3 +86,10 @@ No feature is implemented without a spec. Every task must reference which spec s
 - Network clients act as **Anti-Corruption Layers** — they fetch external data and transform it into domain types. Views never call `fetch` directly.
 - Use **polymorphism over conditionals** — scattered if/else across components is shotgun surgery. Encapsulate variants in Strategy classes.
 - See `.specify/specs/001-darkscore-foundation/frontend-guidelines.md` for detailed patterns and examples.
+
+### C13 — Living Plan Protocol
+- `.specify/specs/001-darkscore-foundation/plan.md` must **always reflect the current project state** — it is the handoff document
+- After every wave completion, plan.md must be updated: move tasks to Completed, update statuses, advance "Current State" and "Next Action"
+- A cold-start agent's instruction is: **"Read `.specify/specs/001-darkscore-foundation/plan.md` — continue from the Current State section."** Nothing else should be needed.
+- The Current State section must be the FIRST thing in plan.md after the title — never more than 5 lines
+- If plan.md is stale, updating it is the highest priority before any implementation work

@@ -3,7 +3,7 @@
 # Spec 001 — DarkScore Foundation (Phase 0)
 
 > Companion documents (read alongside this spec):
-> - [Constitution](../../memory/constitution.md) — governing rules C1–C11
+> - [Constitution](../../memory/constitution.md) — governing rules C1–C13
 > - [Architecture](./architecture.md) — folder structure, package dependency rules, data flow
 > - [C4 Diagrams](./c4-diagrams.md) — L1/L2/L3 normative diagrams (per C11)
 > - [Data Model](./data-model.md) — full database schema

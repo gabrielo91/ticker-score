@@ -6,13 +6,13 @@ Single entry point for any AI agent working in this repository. Read this file i
 
 ## Project identity
 
-DarkScore is a stock-rating platform: it fetches market data from external providers, computes a composite score via swappable strategies, persists reports, and renders them in a Next.js web app. The codebase is a pnpm + Turborepo monorepo organized as a strict layered architecture. The platform is governed by a twelve-rule **Constitution** that is the contract between humans and agents — drift is not allowed.
+DarkScore is a stock-rating platform: it fetches market data from external providers, computes a composite score via swappable strategies, persists reports, and renders them in a Next.js web app. The codebase is a pnpm + Turborepo monorepo organized as a strict layered architecture. The platform is governed by a thirteen-rule **Constitution** that is the contract between humans and agents — drift is not allowed.
 
 ## File map
 
 | What | Where |
 |------|-------|
-| Constitution (C1–C12, normative) | `.specify/memory/constitution.md` |
+| Constitution (C1–C13, normative) | `.specify/memory/constitution.md` |
 | Active spec | `.specify/specs/001-darkscore-foundation/spec.md` |
 | Architecture notes | `.specify/specs/001-darkscore-foundation/architecture.md` |
 | C4 diagrams (L1/L2/L3, normative per C11) | `.specify/specs/001-darkscore-foundation/c4-diagrams.md` |
@@ -80,6 +80,9 @@ pnpm turbo test         # vitest where present
 ```
 
 `pnpm turbo validate` is the single command CI uses; it must exit 0. Per C8, an agent must run `pnpm turbo validate` (boundary check + no-any check + typecheck) and verify it passes before reporting completion.
+
+Per C13, agents must also:
+- Update `.specify/specs/001-darkscore-foundation/plan.md` if your task completes a wave
 
 Individual checks can be run directly:
 

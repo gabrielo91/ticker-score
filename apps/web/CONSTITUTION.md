@@ -5,7 +5,7 @@
 **Purpose:** Next.js app — the only orchestrator. Fetches via providers, scores via the engine, persists via db, reads cache, renders to users.
 
 ## Applicable rules
-C1 (Adapter Pattern), C2 (Cache-First), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error Boundaries), C7 (Spec-Driven), C9 (Monorepo Hygiene).
+C1 (Adapter Pattern), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error Boundaries), C7 (Spec-Driven), C8 (Agent Harness), C9 (Monorepo Hygiene), C10 (Test Expectations), C11 (Architecture Diagrams), C12 (Frontend Layering), C13 (Living Plan Protocol).
 
 ## Allowed imports
 - `@darkscore/types`, `@darkscore/cache`, `@darkscore/db`, `@darkscore/data-providers`, `@darkscore/scoring-engine`.
