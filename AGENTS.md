@@ -75,7 +75,7 @@ pnpm turbo typecheck    # tsc --noEmit across the graph
 pnpm turbo test         # vitest where present
 ```
 
-`pnpm turbo validate` is the single command CI uses; it must exit 0. Per C8, an agent must not report completion if `tsc --noEmit` reports any error.
+`pnpm turbo validate` is the single command CI uses; it must exit 0. Per C8, an agent must run `pnpm turbo validate` (boundary check + no-any check + typecheck) and verify it passes before reporting completion.
 
 Individual checks can be run directly:
 

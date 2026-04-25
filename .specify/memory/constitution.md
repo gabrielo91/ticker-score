@@ -45,10 +45,11 @@ All database changes go through Drizzle migrations. No raw SQL in application co
 No feature is implemented without a spec. Every task must reference which spec section it fulfills. Agents must read the spec and constitution before writing code. Implementation that contradicts the spec is rejected.
 
 ### C8 — Agent Harness Rules (Anti-Hallucination)
-- Agents MUST read the existing code before modifying it
-- Agents MUST NOT add dependencies not listed in the spec
+- Agents MUST read their context chain before writing code: AGENTS.md → package CONSTITUTION.md → task note → then ONLY the files they will modify
+- Agents MUST NOT explore the full codebase — the specs, AGENTS.md, and CONSTITUTION.md files provide all necessary context. If a task's scope is unclear, stop and ask — don't go looking
+- Agents MUST NOT add dependencies not listed in the spec or task note
 - Agents MUST NOT create files outside their task's stated scope
-- Agents MUST run `tsc --noEmit` and verify zero errors before reporting completion
+- Agents MUST run `pnpm turbo validate` (boundary check + no-any check + typecheck) before reporting completion
 - Agents MUST NOT invent API endpoints, database columns, or type fields not in the spec
 - If an agent is unsure about a design decision, it must stop and report back — NOT guess
 
