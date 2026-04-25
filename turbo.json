@@ -18,6 +18,15 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "//#check:boundaries": {
+      "dependsOn": []
+    },
+    "//#check:no-any": {
+      "dependsOn": []
+    },
+    "validate": {
+      "dependsOn": ["//#check:boundaries", "//#check:no-any", "typecheck", "lint"]
     }
   }
 }
