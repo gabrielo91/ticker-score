@@ -6,13 +6,13 @@ const config: Config = {
     extend: {
       colors: {
         darkscore: {
-          bg: "#08090d",
-          card: "#12141a",
-          border: "#1e2028"
+          bg: "var(--darkscore-bg)",
+          card: "var(--darkscore-card)",
+          border: "var(--darkscore-border)"
         },
         text: {
-          primary: "#f0f0f0",
-          muted: "#8a8f98"
+          primary: "var(--text-primary)",
+          muted: "var(--text-muted)"
         },
         accent: {
           green: "#00dc82",
