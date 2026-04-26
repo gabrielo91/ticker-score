@@ -1,0 +1,8 @@
+# Default owner for everything
+* @gabrielo91
+
+# Spec and constitution changes require explicit review
+.specify/ @gabrielo91
+AGENTS.md @gabrielo91
+turbo.json @gabrielo91
+

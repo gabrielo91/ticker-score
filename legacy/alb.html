@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALB Dark Risk Score Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --card-bg: #11131a;
+  --border: #1e2130;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.5; }
+.report { max-width: 1080px; margin: 0 auto; padding: 32px 24px; }
+.page { margin-bottom: 48px; }
+.page-break { page-break-before: always; }
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: box-shadow .25s;
+}
+.card:hover { box-shadow: 0 0 24px rgba(59,130,246,.08); }
+.section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px; font-family: var(--font-body); }
+
+/* Ticker Bar */
+.ticker-bar { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 24px; }
+.ticker-logo { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--blue); }
+.ticker-name { font-size: 14px; color: var(--text-dim); }
+.ticker-sector { font-size: 11px; color: var(--text-muted); }
+.ticker-price { font-family: var(--font-mono); font-size: 32px; font-weight: 700; margin-left: auto; }
+.ticker-change { font-family: var(--font-mono); font-size: 14px; color: var(--red); }
+.range-bar-wrap { width: 100%; margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+.range-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
+.range-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); border-radius: 2px; }
+.range-marker { position: absolute; top: -6px; width: 8px; height: 16px; background: var(--cyan); border-radius: 2px; transform: translateX(-50%); }
+.ticker-stats { display: flex; gap: 24px; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 4px; width: 100%; justify-content: flex-end; }
+
+/* Grid layouts */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 768px) {
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* KPI mini cards */
+.kpi-card { text-align: center; padding: 14px 8px; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+.kpi-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+.kpi-status { font-size: 10px; margin-top: 4px; }
+.status-green { color: var(--green); }
+.status-red { color: var(--red); }
+.status-amber { color: var(--amber); }
+
+/* Gauge */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; margin-bottom: 24px; }
+.gauge-ring { width: 200px; height: 200px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
+.gauge-bg { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) 90deg, var(--amber) 140deg, var(--red) 280deg, var(--red) 360deg); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); opacity: .25; }
+.gauge-fill { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--amber) 0deg, var(--amber) calc(var(--angle) * .75), transparent calc(var(--angle) * .75)); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); animation: gaugeIn 1.5s ease-out forwards; --angle: 0deg; }
+@keyframes gaugeIn { to { --angle: 223.2deg; } }
+@property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.gauge-center { position: relative; text-align: center; z-index: 1; }
+.gauge-score { font-family: var(--font-mono); font-size: 48px; font-weight: 700; }
+.gauge-max { font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); }
+.gauge-label { margin-top: 12px; font-size: 16px; font-weight: 600; color: var(--amber); letter-spacing: 1px; }
+
+/* Chart */
+.chart-wrap { padding: 20px; margin-bottom: 24px; }
+.chart-svg { width: 100%; height: auto; }
+
+/* Score bars */
+.score-bar-wrap { margin-bottom: 16px; }
+.score-bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.score-bar-label { font-weight: 600; }
+.score-bar-value { font-family: var(--font-mono); font-weight: 600; }
+.score-bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 4px; transition: width 1.5s ease-out; }
+.score-bar-note { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Data card items */
+.data-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.data-item:last-child { border-bottom: none; }
+.data-item-label { color: var(--text-dim); }
+.data-item-value { font-family: var(--font-mono); font-weight: 600; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.card-subtitle { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+
+/* Table */
+.q-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.q-table th { font-family: var(--font-body); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.q-table td { font-family: var(--font-mono); padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+.q-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+.q-table tbody tr:hover td { background: rgba(59,130,246,.05); }
+
+/* Catalyst list */
+.catalyst-list li { padding: 4px 0; line-height: 1.6; }
+
+/* Clipboard button */
+#copyBtn { position: fixed; bottom: 24px; right: 24px; background: var(--blue); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 20px rgba(59,130,246,.35); z-index: 100; transition: transform .15s, box-shadow .15s; }
+#copyBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(59,130,246,.45); }
+.toast { position: fixed; bottom: 80px; right: 24px; background: var(--green); color: #000; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font-body); opacity: 0; transform: translateY(10px); transition: opacity .3s, transform .3s; z-index: 100; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Print */
+@media print {
+  body { background: var(--bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page-break { page-break-before: always; }
+  #copyBtn, .toast { display: none !important; }
+  .card:hover { box-shadow: none; }
+  .report { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="report">
+
+
+<!-- PAGE 1 -->
+<div class="page" id="page1">
+
+<!-- Ticker Bar -->
+<div class="card ticker-bar">
+  <div>
+    <div class="ticker-logo">ALB</div>
+    <div class="ticker-name">Albemarle Corporation</div>
+    <div class="ticker-sector">Basic Materials / Specialty Chemicals</div>
+  </div>
+  <div style="text-align:right;margin-left:auto">
+    <div class="ticker-price">$193.14</div>
+    <div class="ticker-change">-$1.08 (-0.56%)</div>
+  </div>
+  <div class="range-bar-wrap">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;width:100%">52-Week Range</div>
+    <span>$50.85</span>
+    <div class="range-track">
+      <div class="range-fill" style="width:100%"></div>
+      <div class="range-marker" style="left:86.3%"></div>
+    </div>
+    <span>$215.71</span>
+  </div>
+  <div class="ticker-stats">
+    <span>Mkt Cap: <strong>$22.7B</strong></span>
+    <span>Volume: <strong>1.55M</strong></span>
+  </div>
+</div>
+
+<!-- Risk Score Gauge -->
+<div class="card gauge-wrap">
+  <div class="section-title">Dark Risk Score</div>
+  <div class="gauge-ring">
+    <div class="gauge-bg"></div>
+    <div class="gauge-fill"></div>
+    <div class="gauge-center">
+      <div class="gauge-score">62</div>
+      <div class="gauge-max">/ 100</div>
+    </div>
+  </div>
+  <div class="gauge-label">Moderate-High Risk</div>
+</div>
+
+<!-- KPI Strip -->
+<div class="grid-6">
+  <div class="card kpi-card"><div class="kpi-label">P/E (TTM)</div><div class="kpi-value status-red">N/A</div><div class="kpi-status status-red">Net loss</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Fwd P/E</div><div class="kpi-value status-red">~250x</div><div class="kpi-status status-red">Deep recovery</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Revenue TTM</div><div class="kpi-value status-amber">$5.14B</div><div class="kpi-status status-amber">-44% YoY</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Net Margin</div><div class="kpi-value status-red">Negative</div><div class="kpi-status status-red">Net loss</div></div>
+  <div class="card kpi-card"><div class="kpi-label">FCF TTM</div><div class="kpi-value status-green">$692M</div><div class="kpi-status status-green">Positive</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Debt/Equity</div><div class="kpi-value status-amber">~64%</div><div class="kpi-status status-amber">Elevated</div></div>
+</div>
+
+<!-- 12-Month Price Chart -->
+<div class="card chart-wrap">
+  <div class="section-title">12-Month Price History</div>
+  <svg class="chart-svg" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--blue)" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="var(--blue)" stop-opacity=".02"/>
+      </linearGradient>
+    </defs>
+    <!-- Grid -->
+    <g stroke="#1e2130" stroke-width="1">
+      <line x1="60" y1="30" x2="60" y2="300"/>
+      <line x1="60" y1="300" x2="960" y2="300"/>
+      <line x1="60" y1="30" x2="960" y2="30" stroke-dasharray="4"/>
+      <line x1="60" y1="97.5" x2="960" y2="97.5" stroke-dasharray="4"/>
+      <line x1="60" y1="165" x2="960" y2="165" stroke-dasharray="4"/>
+      <line x1="60" y1="232.5" x2="960" y2="232.5" stroke-dasharray="4"/>
+    </g>
+    <!-- Y-axis labels -->
+    <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">
+      <text x="52" y="34" text-anchor="end">$200</text>
+      <text x="52" y="101" text-anchor="end">$170</text>
+      <text x="52" y="169" text-anchor="end">$140</text>
+      <text x="52" y="236" text-anchor="end">$110</text>
+      <text x="52" y="304" text-anchor="end">$80</text>
+    </g>
+    <!-- X-axis labels -->
+    <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">
+      <text x="100" y="325">May</text>
+      <text x="178" y="325">Jun</text>
+      <text x="256" y="325">Jul</text>
+      <text x="334" y="325">Aug</text>
+      <text x="412" y="325">Sep</text>
+      <text x="490" y="325">Oct</text>
+      <text x="568" y="325">Nov</text>
+      <text x="646" y="325">Dec</text>
+      <text x="724" y="325">Jan</text>
+      <text x="802" y="325">Feb</text>
+      <text x="880" y="325">Mar</text>
+      <text x="958" y="325">Apr</text>
+    </g>
+    <!-- Gradient fill area -->
+    <polygon points="100,300 178,266.25 256,232.5 334,243.75 412,255 490,221.25 568,187.5 646,165 724,131.25 802,59.25 880,111 958,45.75 958,300 100,300" fill="url(#chartGrad)"/>
+    <!-- Price line -->
+    <polyline points="100,300 178,266.25 256,232.5 334,243.75 412,255 490,221.25 568,187.5 646,165 724,131.25 802,59.25 880,111 958,45.75" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- Annotation dots -->
+    <circle cx="724" cy="131.25" r="6" fill="var(--green)" opacity=".9"/>
+    <text x="724" y="118" fill="var(--green)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">Lithium price recovery</text>
+    <circle cx="802" cy="59.25" r="6" fill="var(--blue)" opacity=".9"/>
+    <text x="802" y="46" fill="var(--blue)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">Q4 earnings beat rev</text>
+    <circle cx="958" cy="45.75" r="6" fill="var(--red)" opacity=".9"/>
+    <text x="920" y="33" fill="var(--red)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="end">Baird downgrade</text>
+  </svg>
+</div>
+
+<!-- Valuation Cards -->
+<div class="section-title">Valuation</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">P/E Ratio</div>
+    <div class="data-item"><span class="data-item-label">TTM P/E</span><span class="data-item-value status-red">N/A (loss)</span></div>
+    <div class="data-item"><span class="data-item-label">Forward P/E</span><span class="data-item-value status-red">~250x</span></div>
+    <div class="data-item"><span class="data-item-label">P/S</span><span class="data-item-value status-amber">4.46x</span></div>
+    <div class="card-subtitle">Deep losses priced into forward multiples; awaiting earnings inflection.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Enterprise Value</div>
+    <div class="data-item"><span class="data-item-label">EV/EBITDA</span><span class="data-item-value status-amber">~22x</span></div>
+    <div class="data-item"><span class="data-item-label">EV/Revenue</span><span class="data-item-value status-amber">~5x</span></div>
+    <div class="data-item"><span class="data-item-label">PEG Ratio</span><span class="data-item-value status-red">N/A</span></div>
+    <div class="card-subtitle">Negative earnings make PEG meaningless; EV multiples elevated for cyclical.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Relative Value</div>
+    <div class="data-item"><span class="data-item-label">vs LTHM/SQM peers</span><span class="data-item-value status-amber">Premium</span></div>
+    <div class="data-item"><span class="data-item-label">52W Performance</span><span class="data-item-value status-green">+249.6%</span></div>
+    <div class="data-item"><span class="data-item-label">vs 10-yr avg</span><span class="data-item-value status-green">Below</span></div>
+    <div class="card-subtitle">Premium to lithium peers but well below 10-yr historical valuation peaks.</div>
+  </div>
+</div>
+
+
+<!-- Financial Health Cards -->
+<div class="section-title">Financial Health</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">Balance Sheet</div>
+    <div class="data-item"><span class="data-item-label">Cash</span><span class="data-item-value status-green">$1.6B</span></div>
+    <div class="data-item"><span class="data-item-label">Total Debt</span><span class="data-item-value status-amber">$3.2B</span></div>
+    <div class="data-item"><span class="data-item-label">D/E</span><span class="data-item-value status-amber">~64%</span></div>
+    <div class="data-item"><span class="data-item-label">Liquidity</span><span class="data-item-value status-green">$3.2B</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cash Flow</div>
+    <div class="data-item"><span class="data-item-label">OCF TTM</span><span class="data-item-value status-green">$1.3B</span></div>
+    <div class="data-item"><span class="data-item-label">FCF TTM</span><span class="data-item-value status-green">$692M</span></div>
+    <div class="data-item"><span class="data-item-label">CapEx</span><span class="data-item-value status-green">$590M</span></div>
+    <div class="card-subtitle">OCF >100% conversion. CapEx down 65% YoY as capacity build slows.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Profitability</div>
+    <div class="data-item"><span class="data-item-label">Gross Margin</span><span class="data-item-value status-amber">~25%</span></div>
+    <div class="data-item"><span class="data-item-label">Operating Margin</span><span class="data-item-value status-red">Negative</span></div>
+    <div class="data-item"><span class="data-item-label">Net Margin</span><span class="data-item-value status-red">Negative</span></div>
+    <div class="data-item"><span class="data-item-label">Adj EBITDA Q4</span><span class="data-item-value status-amber">$269M (+7%)</span></div>
+  </div>
+</div>
+
+<!-- Growth Cards -->
+<div class="section-title">Growth</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">Revenue</div>
+    <div class="data-item"><span class="data-item-label">FY2025</span><span class="data-item-value status-red">$5.14B (-44%)</span></div>
+    <div class="data-item"><span class="data-item-label">Q4 2025</span><span class="data-item-value status-green">$1.4B (+16% QoQ)</span></div>
+    <div class="data-item"><span class="data-item-label">Energy Storage Vol</span><span class="data-item-value status-green">+17%</span></div>
+    <div class="card-subtitle">FY decline driven by lithium price collapse; Q4 marks recovery inflection.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segment</div>
+    <div class="data-item"><span class="data-item-label">Energy Storage</span><span class="data-item-value status-green">+17% / +25% EBITDA</span></div>
+    <div class="data-item"><span class="data-item-label">Ketjen</span><span class="data-item-value status-green">+13% / +39% EBITDA</span></div>
+    <div class="data-item"><span class="data-item-label">Specialties</span><span class="data-item-value status-amber">Stable</span></div>
+    <div class="card-subtitle">Volume growth across segments with strong adj EBITDA leverage.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Outlook</div>
+    <div class="data-item"><span class="data-item-label">2026 CapEx</span><span class="data-item-value status-green">$550–600M</span></div>
+    <div class="data-item"><span class="data-item-label">Cost Savings</span><span class="data-item-value status-green">$100–150M</span></div>
+    <div class="data-item"><span class="data-item-label">Li Demand 2030</span><span class="data-item-value status-green">+10%</span></div>
+  </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Score Breakdown</div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Valuation Score</span><span class="score-bar-value">35 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--red),var(--amber))" data-width="35%"></div></div>
+    <div class="score-bar-note">Challenged</div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Financial Health Score</span><span class="score-bar-value">55 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="55%"></div></div>
+    <div class="score-bar-note">Adequate</div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Growth Score</span><span class="score-bar-value">50 / 100 <span style="color:var(--text-muted);font-size:11px">(30% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="50%"></div></div>
+    <div class="score-bar-note">Recovery mode</div>
+  </div>
+  <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:13px;font-weight:600">Composite Risk Score</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--amber)">62 / 100</span>
+  </div>
+  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Higher composite → higher risk. Lithium cyclicality + negative EPS keep score elevated.</div>
+</div>
+
+</div>
+
+<!-- PAGE 2 -->
+<div class="page page-break" id="page2">
+
+<!-- Quarterly Trend Table -->
+<div class="card" style="margin-bottom:24px;overflow-x:auto">
+  <div class="section-title">Quarterly Trend</div>
+  <table class="q-table">
+    <thead>
+      <tr><th>Quarter</th><th>Revenue ($B)</th><th>Rev Growth</th><th>Adj EBITDA ($M)</th><th>EBITDA Growth</th><th>Energy Storage Vol</th><th>EPS</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Q1 2025</td><td>$1.08</td><td>-13%</td><td>~$200</td><td>—</td><td>—</td><td>-$1.46</td></tr>
+      <tr><td>Q2 2025</td><td>$1.33</td><td>+24%</td><td>~$230</td><td>—</td><td>—</td><td>-$0.81</td></tr>
+      <tr><td>Q3 2025</td><td>$1.31</td><td>-2%</td><td>~$250</td><td>—</td><td>+17%</td><td>-$0.90</td></tr>
+      <tr><td>Q4 2025</td><td>$1.40</td><td>+16%</td><td>$269</td><td>+7%</td><td>+17%</td><td>-$3.52*</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:8px">*Q4 includes tax write-downs and Ketjen asset impairment.</div>
+</div>
+
+<!-- Latest Earnings -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Latest Earnings & Outlook</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="card-title">Q4 2025 Results</div>
+      <div class="data-item"><span class="data-item-label">Revenue</span><span class="data-item-value status-green">$1.4B ✅ beat est.</span></div>
+      <div class="data-item"><span class="data-item-label">Adj EBITDA</span><span class="data-item-value status-green">$269M (+7%)</span></div>
+      <div class="data-item"><span class="data-item-label">Net Loss</span><span class="data-item-value status-red">-$414M*</span></div>
+      <div class="data-item"><span class="data-item-label">EPS</span><span class="data-item-value">-$3.52</span></div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px">*Driven by one-time tax & Ketjen write-down.</div>
+    </div>
+    <div>
+      <div class="card-title">Upcoming</div>
+      <div class="data-item"><span class="data-item-label">Q1 2026 Earnings</span><span class="data-item-value" style="color:var(--blue)">May 6, 2026</span></div>
+      <div class="data-item"><span class="data-item-label">Analyst EPS Est.</span><span class="data-item-value status-green">$0.78</span></div>
+      <div class="data-item"><span class="data-item-label">2026 CapEx Plan</span><span class="data-item-value">$550–600M</span></div>
+      <div class="data-item"><span class="data-item-label">Cost Savings Target</span><span class="data-item-value status-green">$100–150M</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Catalysts vs Risks -->
+<div class="section-title">Catalysts vs Risks</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+  <div class="card" style="border-color:rgba(34,197,94,.25)">
+    <div class="card-title" style="color:var(--green)">⬆ Catalysts</div>
+    <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
+      <li>Lithium price recovery — prices up significantly from 2024 lows</li>
+      <li>$450M cost/productivity savings achieved in 2025</li>
+      <li>Energy Storage volume +17% with pricing improvements</li>
+      <li>Ketjen divestiture to simplify business</li>
+      <li>2030 lithium demand forecast up 10%</li>
+      <li>Positive FCF achievable at current lithium pricing</li>
+      <li>Stock up 249.6% in 52 weeks — momentum</li>
+    </ol>
+  </div>
+  <div class="card" style="border-color:rgba(239,68,68,.25)">
+    <div class="card-title" style="color:var(--red)">⬇ Risks</div>
+    <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
+      <li>Lithium price volatility — cyclical commodity exposure</li>
+      <li>Negative EPS — no profitability yet</li>
+      <li>$3.2B total debt load</li>
+      <li>Tariff/trade policy uncertainty</li>
+      <li>Baird downgrade on lithium supply risks</li>
+      <li>China lithium oversupply concerns</li>
+      <li>Customer concentration in EV supply chain</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Verdict -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Bottom Line — Verdict</div>
+  <!-- Rating bar -->
+  <div style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px">
+      <span>Strong Sell</span><span>Sell</span><span>Hold</span><span>Buy</span><span>Strong Buy</span>
+    </div>
+    <div style="height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green),#10b981);position:relative">
+      <div style="position:absolute;left:50%;top:-4px;width:4px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.5)"></div>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--amber)">HOLD</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span style="font-size:13px;font-weight:600">Overall Risk Score</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--amber)">62 / 100 — Moderate-High</span>
+  </div>
+  <p style="font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:20px">Albemarle is a leveraged lithium recovery play. The 250% rally prices in significant upside, but negative earnings and commodity cyclicality keep risk elevated. Cost savings and volume growth are encouraging, but profitability depends on sustained lithium price recovery. Hold for lithium bulls; wait for earnings inflection for new positions.</p>
+  <!-- Price Targets -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div style="text-align:center;padding:14px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:4px">Bear</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$120</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:rgba(59,130,246,.08);border-radius:8px;border:1px solid rgba(59,130,246,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:4px">Base</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$200</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:rgba(34,197,94,.08);border-radius:8px;border:1px solid rgba(34,197,94,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:4px">Bull</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$280</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:var(--text-muted);padding:16px 0">
+  Generated by Dark Risk Score Engine · Data as of April 25, 2026 · Not financial advice.
+</div>
+
+</div>
+</div>
+
+<!-- Clipboard Button -->
+<button id="copyBtn" onclick="copyReport()" title="Copy Report">📋 Copy Report</button>
+<div id="toast" class="toast">Copied to clipboard ✓</div>
+
+<script>
+// Animate score bars on load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar-fill[data-width]').forEach(bar => {
+      bar.style.width = bar.dataset.width;
+    });
+  }, 300);
+});
+
+function copyReport() {
+  const text = `ALB DARK RISK SCORE REPORT
+===========================
+Albemarle Corporation (ALB)
+Price: $193.14 (-$1.08, -0.56%)
+52-Week Range: $50.85 – $215.71
+Market Cap: $22.7B | Volume: 1.55M
+
+RISK SCORE: 62/100 — Moderate-High Risk
+Rating: HOLD
+
+KEY METRICS
+• P/E (TTM): N/A (loss) | Fwd P/E: ~250x
+• Revenue TTM: $5.14B (-44% YoY) | Net Margin: Negative
+• FCF TTM: $692M | D/E: ~64%
+• OCF TTM: $1.3B | CapEx: $590M (-65% YoY)
+• Adj EBITDA Q4: $269M (+7%)
+
+SCORE BREAKDOWN
+• Valuation: 35/100 (35% weight) — Challenged
+• Financial Health: 55/100 (35% weight) — Adequate
+• Growth: 50/100 (30% weight) — Recovery mode
+
+GROWTH HIGHLIGHTS
+• Energy Storage: +17% vol, +25% adj EBITDA
+• Ketjen: +13% vol, +39% adj EBITDA
+• Q4 2025 Revenue: $1.4B (+16% QoQ)
+• 2030 Lithium demand forecast +10%
+
+PRICE TARGETS: Bear $120 | Base $200 | Bull $280
+
+Next Earnings: May 6, 2026 (Est. EPS $0.78)
+Generated by Dark Risk Score Engine`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+</script>
+
+</body>
+</html>

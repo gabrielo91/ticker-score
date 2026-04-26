@@ -1,0 +1,30 @@
+{
+  "name": "darkscore",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev": "turbo run dev",
+    "validate": "turbo run validate",
+    "check:boundaries": "tsx scripts/check-boundaries.ts",
+    "check:no-any": "tsx scripts/check-no-any.ts",
+    "db:generate": "pnpm --filter @darkscore/db generate",
+    "db:migrate": "pnpm --filter @darkscore/db migrate",
+    "db:studio": "pnpm --filter @darkscore/db studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "eslint": "^8.57.0",
+    "tsx": "^4.19.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
