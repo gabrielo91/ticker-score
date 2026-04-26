@@ -2,3 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS variables — fonts wired from next/font in layout.tsx */
+:root {
+  --darkscore-bg: #08090d;
+  --darkscore-card: #12141a;
+  --darkscore-border: #1e2028;
+  --text-primary: #f0f0f0;
+  --text-muted: #8a8f98;
+  --accent-green: #00dc82;
+  --accent-red: #ff4757;
+  --accent-amber: #ffc107;
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--darkscore-bg);
+    color: var(--text-primary);
+  }
+
+  body {
+    font-family: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace,
+      monospace;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2a2d36 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: #2a2d36;
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #3a3d48;
+  }
+}
+
+@layer components {
+  .ds-card {
+    @apply bg-darkscore-card border border-darkscore-border rounded-card p-5 transition-shadow duration-200;
+  }
+  .ds-card:hover {
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.08);
+  }
+
+  .section-title {
+    @apply text-text-muted text-xs font-semibold uppercase tracking-[0.12em] mb-4;
+  }
+
+  .status-beat,
+  .status-green {
+    color: var(--accent-green);
+  }
+  .status-miss,
+  .status-red {
+    color: var(--accent-red);
+  }
+  .status-caution,
+  .status-amber {
+    color: var(--accent-amber);
+  }
+}
+
+@media print {
+  :root {
+    --darkscore-bg: #ffffff;
+    --darkscore-card: #ffffff;
+    --darkscore-border: #d8dbe2;
+    --text-primary: #1a1d24;
+    --text-muted: #5a5f68;
+  }
+
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #1a1d24 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ds-card {
+    box-shadow: none !important;
+    border-color: #d8dbe2 !important;
+    background-color: #ffffff !important;
+  }
+
+  .print-hide,
+  [data-print-hide="true"] {
+    display: none !important;
+  }
+
+  .page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  main {
+    padding: 12mm !important;
+    max-width: none !important;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
