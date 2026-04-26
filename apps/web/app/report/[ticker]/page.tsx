@@ -89,9 +89,8 @@ function ReportView({ report }: { report: ReportData }): JSX.Element {
             risks={report.risks}
           />
           <Verdict
-            score={report.riskScore.composite}
-            rating={report.riskScore.rating}
-            priceTargets={report.verdict.priceTargets}
+            verdict={report.verdict}
+            riskScore={report.riskScore}
           />
         </section>
 
