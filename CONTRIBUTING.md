@@ -1,5 +1,7 @@
 # Contributing to DarkScore
 
+> **AI Agents**: Read `AGENTS.md` at the repository root — it contains the complete workflow protocol, dependency rules, and pre-submission checklist. This file is for human contributors.
+
 ## Getting Started
 
 1. Read `AGENTS.md` — the project entry point for all contributors (human and AI)

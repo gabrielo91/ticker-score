@@ -91,6 +91,57 @@ pnpm check:boundaries
 pnpm check:no-any
 ```
 
+## Agent Workflow Protocol
+
+End-to-end lifecycle for any agent picking up a task. Follow these steps in order.
+
+### 1. Orient
+1. Read this file (AGENTS.md) — you are here.
+2. Read `.specify/specs/001-darkscore-foundation/plan.md` — the "Current State" section tells you where the project stands and what's next.
+3. Read the relevant package's `CONSTITUTION.md` for scope-specific rules.
+4. Read the C4 diagrams if your task touches package boundaries.
+
+### 2. Branch
+- Create a branch from `main`: `feat/{wave}-{short-slug}` (e.g., `feat/w2-types-package`, `fix/w1-ci-lockfile`)
+- Conventional prefixes: `feat/`, `fix/`, `docs/`, `chore/`
+
+### 3. Implement
+- Follow the Constitution (C1–C13) and your package's CONSTITUTION.md
+- Commit often with conventional commit messages: `feat: add ticker types and Zod schemas`, `fix: add updated_at to price_history per C6`
+- Do NOT create files outside your task's stated scope (C8)
+- Do NOT add dependencies not listed in the spec (C8)
+
+### 4. Validate
+Run from the repo root before reporting completion:
+```bash
+pnpm turbo validate     # boundaries + no-any + typecheck + lint — MUST exit 0
+pnpm turbo test         # vitest where present — MUST exit 0
+```
+
+### 5. Open PR
+- Push your branch: `git push origin <branch-name>`
+- Open a PR against `main` using the template at `.github/pull_request_template.md`
+- PR title follows conventional commits: `feat: Wave 2 — types package with Zod schemas`
+- Fill in the checklist in the PR template — every box must be checked
+- Link to the spec section and task (e.g., "Task: W2-1")
+
+### 6. Review & iterate
+- CI runs automatically on every push (GitHub Actions: `turbo validate` + `turbo test`)
+- A reviewer (human or agent) may leave inline comments — fix them, push, and reply with what you changed
+- Resolve all review threads before requesting merge
+
+### 7. Merge
+- Merge strategy: **squash merge** (configured on repo)
+- Branches are auto-deleted after merge
+- If auto-merge is enabled and CI passes + review approved, the PR merges automatically
+
+### 8. Update plan.md
+After merge, update `.specify/specs/001-darkscore-foundation/plan.md`:
+- Mark your task/wave as complete (✅)
+- Update the "Current State" section to reflect the new project state
+- Update "Next Action" to point to the next task
+- This is required by Constitution C13 — the plan is the handoff document for the next agent
+
 ## Naming conventions
 
 - **Package scope:** `@darkscore/*`. New packages must use this scope and be registered in `pnpm-workspace.yaml` (C9).
