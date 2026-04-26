@@ -88,6 +88,13 @@ importers:
       '@darkscore/types':
         specifier: workspace:*
         version: link:../types
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@20.19.39)
 
   packages/db:
     dependencies:
