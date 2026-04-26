@@ -3,10 +3,10 @@
 
 ## Current State
 
-**Status**: Wave 1 COMPLETE. Wave 2 NOT STARTED.  
-**Next action**: Implement W2-1 (@darkscore/types) — shared types and Zod schemas. Once types is done, implement W2-2, W2-3, W2-4 in parallel.  
-**Handoff instruction**: Read this section, then review the Wave 2 task details below. Read AGENTS.md and your package's CONSTITUTION.md before writing code.  
-**Last updated**: 2026-04-25
+**Status**: Wave 2 COMPLETE. Wave 3 NOT STARTED.
+**Next action**: Implement W3-1 (apps/web) — Next.js SSR report page with all React components, server-side orchestration, and Tailwind dark theme.
+**Handoff instruction**: Read this section, then review the Wave 3 task details below. Read AGENTS.md, apps/web/CONSTITUTION.md, and .specify/specs/001-darkscore-foundation/frontend-guidelines.md before writing code.
+**Last updated**: 2026-04-26
 
 ---
 
@@ -18,7 +18,7 @@
 |------|------------|--------|----------|
 | W1-1 | Turborepo monorepo scaffold | ✅ Done | turbo build 5/5, turbo typecheck 8/8, 11 legacy HTML files moved |
 | W1-2 | Docker Compose + Drizzle DB schema | ✅ Done | 4 tables, migrations generated, typecheck passes |
-| W1-3 | Materialize specs into .specify/ | ✅ Done | Constitution (12 rules), spec, plan, architecture, C4 diagrams |
+| W1-3 | Materialize specs into .specify/ | ✅ Done | Constitution (C1–C13), spec, plan, architecture, C4 diagrams |
 | W1-4 | Harness hardening (AGENTS.md, boundary checker, no-any checker, package CONSTITUTIONs) | ✅ Done | Both checkers pass, 6 CONSTITUTION.md files, AGENTS.md |
 
 **Post-Wave 1 fixes applied:**
@@ -29,6 +29,17 @@
 - frontend-guidelines.md created
 - Stale references fixed (C1-C11 → C1-C13)
 
+### Wave 2: Core Packages ✅
+
+| Task | Package | Description | Status | Verified |
+|------|---------|------------|--------|----------|
+| W2-1 | @darkscore/types | Shared TypeScript types + Zod schemas (TickerInfo, Financials, RiskScore, ReportData, Result<T>, DataProvider interface) | ✅ Done | 15 tests, PR #3 |
+| W2-2 | @darkscore/cache | Redis cache layer (CacheService, CacheBackend adapter, key builder, 2hr TTL) | ✅ Done | 30 tests, PR #5 |
+| W2-3 | @darkscore/data-providers | Yahoo Finance adapter, ProviderRegistry, DataAggregator, Zod response schemas, rate limiter | ✅ Done | 42 tests, PR #9 |
+| W2-4 | @darkscore/scoring-engine | EditorialStrategy (35/35/30), Valuation/Health/Growth scorers, thresholds, rating mapper | ✅ Done | 55 tests, PR #4 |
+
+**Total**: 142 unit tests across 4 packages.
+
 ---
 
 ## Active Work
@@ -38,17 +49,6 @@ _No active tasks._
 ---
 
 ## Upcoming Work
-
-### Wave 2: Core Packages ⏳
-
-**Dependency order**: W2-1 FIRST (types is a leaf dependency), then W2-2, W2-3, W2-4 in parallel.
-
-| Task | Package | Description | Dependencies | Status |
-|------|---------|------------|--------------|--------|
-| W2-1 | @darkscore/types | Shared TypeScript types + Zod schemas (TickerInfo, Financials, RiskScore, ReportData, Result<T>, DataProvider interface) | None | ⏳ Not Started |
-| W2-2 | @darkscore/cache | Redis cache layer (ioredis, CacheService, key builder, 2hr TTL) | W2-1 (types) | ⏳ Not Started |
-| W2-3 | @darkscore/data-providers | Yahoo Finance adapter, ProviderRegistry, DataAggregator, Zod response schemas | W2-1 (types), W2-2 (cache) | ⏳ Not Started |
-| W2-4 | @darkscore/scoring-engine | EditorialStrategy, Valuation/Health/Growth scorers, thresholds, rating mapper | W2-1 (types) | ⏳ Not Started |
 
 ### Wave 3: Web App & Integration ⏳
 
