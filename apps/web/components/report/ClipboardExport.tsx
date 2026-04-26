@@ -11,6 +11,8 @@
 import { useState } from "react";
 import type { ReportData } from "@darkscore/types";
 
+type ToastState = "idle" | "ok" | "error";
+
 interface ClipboardExportProps {
   readonly reportData: ReportData;
 }
@@ -57,17 +59,28 @@ function buildSummary(data: ReportData): string {
 export function ClipboardExport({
   reportData,
 }: ClipboardExportProps): JSX.Element {
-  const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState<ToastState>("idle");
 
   async function handleCopy(): Promise<void> {
     try {
       await navigator.clipboard.writeText(buildSummary(reportData));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
+      setToast("ok");
+      setTimeout(() => setToast("idle"), 2000);
+    } catch (err) {
+      console.error("Copy failed", err);
+      setToast("error");
+      setTimeout(() => setToast("idle"), 2500);
     }
   }
+
+  const visible = toast !== "idle";
+  const isError = toast === "error";
+  const message = isError
+    ? "Copy failed — clipboard unavailable"
+    : "Copied to clipboard ✓";
+  const toneClass = isError
+    ? "bg-[#ff4757] text-white"
+    : "bg-[#00dc82] text-black";
 
   return (
     <>
@@ -84,11 +97,11 @@ export function ClipboardExport({
       <div
         role="status"
         aria-live="polite"
-        className={`fixed bottom-20 right-6 z-50 px-5 py-2.5 rounded-md bg-[#00dc82] text-black text-xs font-semibold pointer-events-none transition-all duration-300 ${
-          copied ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2.5"
+        className={`fixed bottom-20 right-6 z-50 px-5 py-2.5 rounded-md text-xs font-semibold pointer-events-none transition-all duration-300 ${toneClass} ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2.5"
         }`}
       >
-        Copied to clipboard ✓
+        {message}
       </div>
     </>
   );
