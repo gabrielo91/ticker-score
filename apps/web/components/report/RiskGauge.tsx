@@ -2,38 +2,15 @@
 /**
  * RiskGauge — animated semi-circular gauge for the composite risk score.
  * Client-only because the fill animates on mount via stroke-dashoffset.
- * Color follows five zones (green → lime → amber → orange → red) based on
- * the score. Zones live in `RISK_ZONES`; logic stays out of JSX (C12).
+ * Color follows five zones (green → lime → amber → orange → red); zone
+ * lookup and geometry live in `RiskGauge.helpers` (C12).
  */
 import { useEffect, useState } from "react";
+import { CIRCUMFERENCE, RADIUS, STROKE, colorForScore } from "./RiskGauge.helpers";
 
 interface RiskGaugeProps {
   readonly score: number;
   readonly rating: string;
-}
-
-interface Zone {
-  readonly max: number;
-  readonly color: string;
-}
-
-const RISK_ZONES: ReadonlyArray<Zone> = [
-  { max: 20, color: "#00dc82" },
-  { max: 40, color: "#84cc16" },
-  { max: 60, color: "#ffc107" },
-  { max: 80, color: "#fb923c" },
-  { max: 100, color: "#ff4757" },
-];
-
-const RADIUS = 80;
-const STROKE = 14;
-const CIRCUMFERENCE = Math.PI * RADIUS;
-
-function colorForScore(score: number): string {
-  for (const zone of RISK_ZONES) {
-    if (score <= zone.max) return zone.color;
-  }
-  return RISK_ZONES[RISK_ZONES.length - 1]!.color;
 }
 
 export function RiskGauge({ score, rating }: RiskGaugeProps): JSX.Element {
