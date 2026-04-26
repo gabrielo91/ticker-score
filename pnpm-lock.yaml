@@ -29,6 +29,21 @@ importers:
 
   apps/web:
     dependencies:
+      '@darkscore/cache':
+        specifier: workspace:^
+        version: link:../../packages/cache
+      '@darkscore/data-providers':
+        specifier: workspace:^
+        version: link:../../packages/data-providers
+      '@darkscore/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@darkscore/scoring-engine':
+        specifier: workspace:^
+        version: link:../../packages/scoring-engine
+      '@darkscore/types':
+        specifier: workspace:^
+        version: link:../../packages/types
       next:
         specifier: ^14.2.13
         version: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
