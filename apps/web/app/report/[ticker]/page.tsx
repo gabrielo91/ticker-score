@@ -44,16 +44,23 @@ export default async function ReportPage({
 }
 
 function ReportView({ report }: { report: ReportData }): JSX.Element {
+  const latestQuarter = report.quarterlyResults[0];
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-8">
       <div className="max-w-[1080px] mx-auto space-y-6">
         {/* PAGE 1 — Snapshot & Score */}
         <section className="page space-y-6" aria-label="Snapshot and score">
-          <TickerBar info={report.ticker} />
-          <KPIStrip items={report.kpiStrip} />
+          <TickerBar ticker={report.ticker} />
+          <KPIStrip
+            keyMetrics={report.keyMetrics}
+            financials={report.financials}
+          />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-1">
-              <RiskGauge riskScore={report.riskScore} />
+              <RiskGauge
+                score={report.riskScore.composite}
+                rating={report.riskScore.rating}
+              />
             </div>
             <div className="md:col-span-2">
               <PriceChart chart={report.priceChart} />
@@ -74,12 +81,18 @@ function ReportView({ report }: { report: ReportData }): JSX.Element {
           aria-label="Deep dive and verdict"
         >
           <QuarterlyTable quarters={report.quarterlyResults} />
-          <EarningsUpdate earnings={report.latestEarnings} />
+          {latestQuarter !== undefined ? (
+            <EarningsUpdate latestQuarter={latestQuarter} />
+          ) : null}
           <CatalystsRisks
             catalysts={report.catalysts}
             risks={report.risks}
           />
-          <Verdict verdict={report.verdict} ticker={report.ticker} />
+          <Verdict
+            score={report.riskScore.composite}
+            rating={report.riskScore.rating}
+            priceTargets={report.verdict.priceTargets}
+          />
         </section>
 
         <footer className="pt-6 border-t border-darkscore-border text-xs text-text-muted">
@@ -89,7 +102,7 @@ function ReportView({ report }: { report: ReportData }): JSX.Element {
         </footer>
       </div>
 
-      <ClipboardExport report={report} />
+      <ClipboardExport reportData={report} />
     </main>
   );
 }

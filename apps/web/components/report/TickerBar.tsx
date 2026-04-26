@@ -1,38 +1,102 @@
 /**
- * Stub for W3-2 — replaced by the real implementation in
- * `feat/w3-page1-components`. Renders the ticker header (symbol, name,
- * sector, current price, day change, 52-week range bar).
+ * TickerBar — top-of-report identity card. Renders the company name, symbol,
+ * current price + day change, the 52-week range bar with a position marker,
+ * and market cap. Pure presentational (C12); all formatting is helper-local.
  */
 import type { TickerInfo } from "@darkscore/types";
 
-export interface TickerBarProps {
-  readonly info: TickerInfo;
+interface TickerBarProps {
+  readonly ticker: TickerInfo;
 }
 
-export function TickerBar({ info }: TickerBarProps): JSX.Element {
-  const isUp = info.priceChange >= 0;
-  const changeClass = isUp ? "status-green" : "status-red";
+export function TickerBar({ ticker }: TickerBarProps): JSX.Element {
+  const isUp = ticker.priceChange >= 0;
+  const changeClass = isUp ? "text-[#00dc82]" : "text-[#ff4757]";
+  const range = ticker.week52High - ticker.week52Low;
+  const rawPos = range > 0 ? (ticker.currentPrice - ticker.week52Low) / range : 0;
+  const markerPct = Math.max(0, Math.min(1, rawPos)) * 100;
+
   return (
-    <div className="ds-card flex flex-wrap items-center gap-5">
-      <div>
-        <div className="font-mono text-3xl font-bold text-accent-blue">
-          {info.symbol}
+    <div className="rounded-xl border border-[#1e2130] bg-[#11131a] p-5 mb-6">
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="min-w-0">
+          <div className="font-mono text-3xl font-bold text-[#3b82f6]">
+            {ticker.symbol}
+          </div>
+          <div className="text-sm text-[#94a3b8] truncate">{ticker.name}</div>
+          {ticker.sector !== null ? (
+            <div className="text-xs text-[#64748b]">{ticker.sector}</div>
+          ) : null}
         </div>
-        <div className="text-text-muted text-sm">{info.name}</div>
-        {info.sector !== null ? (
-          <div className="text-text-muted text-xs">{info.sector}</div>
-        ) : null}
+        <div className="ml-auto text-right">
+          <div className="font-mono text-3xl font-bold text-[#f0f0f0]">
+            {formatPrice(ticker.currentPrice, ticker.currency)}
+          </div>
+          <div className={`font-mono text-sm ${changeClass}`}>
+            {formatChange(ticker.priceChange, ticker.priceChangePercent, ticker.currency)}
+          </div>
+        </div>
       </div>
-      <div className="ml-auto text-right">
-        <div className="font-mono text-3xl font-bold">
-          {info.currency} {info.currentPrice.toFixed(2)}
+
+      <div className="mt-3 w-full">
+        <div className="text-[10px] uppercase tracking-widest text-[#64748b] mb-1">
+          52-Week Range
         </div>
-        <div className={`font-mono text-sm ${changeClass}`}>
-          {isUp ? "+" : ""}
-          {info.priceChange.toFixed(2)} (
-          {(info.priceChangePercent * 100).toFixed(2)}%)
+        <div className="flex items-center gap-3 font-mono text-[11px] text-[#64748b]">
+          <span>{formatPrice(ticker.week52Low, ticker.currency)}</span>
+          <div className="relative flex-1 h-1 rounded-full bg-[#1e2130]">
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: "linear-gradient(90deg,#ff4757,#ffc107,#00dc82)",
+              }}
+            />
+            <div
+              className="absolute -top-1.5 h-4 w-2 rounded-sm bg-[#06b6d4] -translate-x-1/2"
+              style={{ left: `${markerPct}%` }}
+            />
+          </div>
+          <span>{formatPrice(ticker.week52High, ticker.currency)}</span>
         </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap justify-end gap-6 font-mono text-xs text-[#94a3b8]">
+        <span>
+          Mkt Cap:{" "}
+          <strong className="text-[#f0f0f0]">
+            {ticker.marketCap !== null ? formatCompact(ticker.marketCap) : "—"}
+          </strong>
+        </span>
+        {ticker.volume !== null ? (
+          <span>
+            Volume:{" "}
+            <strong className="text-[#f0f0f0]">{formatCompact(ticker.volume)}</strong>
+          </span>
+        ) : null}
       </div>
     </div>
   );
 }
+
+function formatPrice(value: number, currency: string): string {
+  const sym = currency === "USD" ? "$" : `${currency} `;
+  return `${sym}${value.toFixed(2)}`;
+}
+
+function formatChange(abs: number, pct: number, currency: string): string {
+  const sym = currency === "USD" ? "$" : `${currency} `;
+  const signedAbs = abs >= 0 ? `+${sym}${abs.toFixed(2)}` : `-${sym}${Math.abs(abs).toFixed(2)}`;
+  const pctValue = pct * 100;
+  const signedPct = pctValue >= 0 ? `+${pctValue.toFixed(2)}%` : `${pctValue.toFixed(2)}%`;
+  return `${signedAbs} (${signedPct})`;
+}
+
+function formatCompact(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+  return value.toFixed(0);
+}
+
