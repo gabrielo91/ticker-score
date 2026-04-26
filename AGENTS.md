@@ -125,6 +125,7 @@ pnpm turbo test         # vitest where present — MUST exit 0
 - Fill in the checklist in the PR template — every box must be checked
 - Link to the spec section and task (e.g., "Task: W2-1")
 - Open PRs as **ready for review** (not draft) unless explicitly told otherwise
+- When using the GitHub API to create a PR, you MUST set `"draft": false` or omit the draft field entirely — never set `"draft": true`
 
 ### 6. Review & iterate
 - CI runs automatically on every push (GitHub Actions: `turbo validate` + `turbo test`)
