@@ -1,48 +1,24 @@
 /**
  * Bottom-line verdict block — rating bar with marker, composite risk score,
- * and optional bear/base/bull price targets. Mirrors the "Bottom Line —
- * Verdict" card in `legacy/index.html`.
+ * verdict summary, and bear/base/bull price targets. Mirrors the "Bottom
+ * Line — Verdict" card in `legacy/index.html`.
  *
- * Pure presentational (C12). Rating-to-position math is encapsulated in a
- * private helper above the JSX.
+ * Pure presentational (C12). Rating-to-position math lives in the scoring
+ * engine; this component reads `riskScore.ratingPosition` directly and
+ * never re-derives it from the rating string.
  */
-
-interface PriceTargets {
-  readonly bear: number;
-  readonly base: number;
-  readonly bull: number;
-}
+import type { Rating, RiskScore, Verdict as VerdictData } from "@darkscore/types";
 
 interface VerdictProps {
-  readonly score: number;
-  readonly rating: string;
-  readonly priceTargets?: PriceTargets;
+  readonly verdict: VerdictData;
+  readonly riskScore: RiskScore;
 }
 
-const RATING_POSITION_PERCENT: Record<string, number> = {
-  STRONG_SELL: 10,
-  SELL: 30,
-  HOLD: 50,
-  SPECULATIVE_HOLD: 50,
-  BUY: 70,
-  SPECULATIVE_BUY: 70,
-  STRONG_BUY: 90,
-};
-
-function ratingPosition(rating: string): number {
-  return RATING_POSITION_PERCENT[rating] ?? 50;
-}
-
-function formatRating(rating: string): string {
+function formatRating(rating: Rating): string {
   return rating.replace(/_/g, " ");
 }
 
-export function Verdict({
-  score,
-  rating,
-  priceTargets,
-}: VerdictProps): JSX.Element {
-  const position = ratingPosition(rating);
+export function Verdict({ verdict, riskScore }: VerdictProps): JSX.Element {
   return (
     <section className="rounded-xl border border-zinc-800 bg-[#11131a] p-6 mb-6">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-[#f0f0f0] mb-5">
@@ -58,8 +34,8 @@ export function Verdict({
         </div>
         <div className="relative h-2.5 rounded-full bg-gradient-to-r from-[#ff4757] via-[#ffc107] to-[#00dc82]">
           <div
-            className="absolute -top-1 w-1 h-4.5 rounded-sm bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-            style={{ left: `${position}%`, height: "18px" }}
+            className="absolute -top-1 w-1 rounded-sm bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+            style={{ left: `${riskScore.ratingPosition}%`, height: "18px" }}
           />
         </div>
       </div>
@@ -68,28 +44,29 @@ export function Verdict({
           Overall Risk Score
         </span>
         <span className="font-mono text-2xl font-bold text-[#00dc82]">
-          {score} / 100 — {formatRating(rating)}
+          {riskScore.composite} / 100 — {formatRating(riskScore.rating)}
         </span>
       </div>
-      {priceTargets !== undefined ? (
-        <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-800">
-          <PriceTargetCell
-            label="Bear"
-            value={priceTargets.bear}
-            tone="red"
-          />
-          <PriceTargetCell
-            label="Base"
-            value={priceTargets.base}
-            tone="blue"
-          />
-          <PriceTargetCell
-            label="Bull"
-            value={priceTargets.bull}
-            tone="green"
-          />
-        </div>
-      ) : null}
+      <p className="text-sm text-[#8a8f98] leading-relaxed mb-4">
+        {verdict.summary}
+      </p>
+      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-800">
+        <PriceTargetCell
+          label="Bear"
+          value={verdict.priceTargets.bear}
+          tone="red"
+        />
+        <PriceTargetCell
+          label="Base"
+          value={verdict.priceTargets.base}
+          tone="blue"
+        />
+        <PriceTargetCell
+          label="Bull"
+          value={verdict.priceTargets.bull}
+          tone="green"
+        />
+      </div>
     </section>
   );
 }
