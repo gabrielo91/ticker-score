@@ -124,6 +124,7 @@ pnpm turbo test         # vitest where present — MUST exit 0
 - PR title follows conventional commits: `feat: Wave 2 — types package with Zod schemas`
 - Fill in the checklist in the PR template — every box must be checked
 - Link to the spec section and task (e.g., "Task: W2-1")
+- Open PRs as **ready for review** (not draft) unless explicitly told otherwise
 
 ### 6. Review & iterate
 - CI runs automatically on every push (GitHub Actions: `turbo validate` + `turbo test`)
