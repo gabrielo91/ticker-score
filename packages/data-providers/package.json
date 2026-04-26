@@ -12,7 +12,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,8 +22,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@darkscore/cache": "workspace:*",
     "@darkscore/types": "workspace:*",
-    "@darkscore/cache": "workspace:*"
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0"
   }
 }
-
