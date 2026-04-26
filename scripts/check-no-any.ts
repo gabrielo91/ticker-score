@@ -3,7 +3,8 @@
  * check-no-any.ts
  *
  * Enforces Constitution C3 (no escape hatches): scans .ts/.tsx in packages/
- * and apps/ for `: any`, `as any`, `<any>`, `@ts-ignore`, `@ts-expect-error`.
+ * and apps/ for `: any`, `as any`, `<any>`, `any[]`, and the TypeScript
+ * suppression directives (ts-ignore / ts-expect-error).
  * Excludes node_modules, .d.ts, dist/, .next/, build/.
  *
  * Exits 0 on clean, 1 on any violation. No external deps.
@@ -11,7 +12,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const ROOTS = ["packages", "apps"];
+const ROOTS = ["packages", "apps", "scripts"];
 const SKIP_DIRS = new Set(["node_modules", "dist", ".next", "build", ".turbo"]);
 const SOURCE_EXT = /\.(ts|tsx)$/;
 const DECL_EXT = /\.d\.ts$/;
@@ -24,13 +25,24 @@ interface Rule {
 // Patterns are intentionally conservative: each rule has a clear "this is the
 // thing C3 forbids" mapping. Word boundaries / surrounding punctuation prevent
 // matching identifiers like `anyOf` or `Many`.
+//
+// The TS suppression-directive patterns are built via string concatenation so
+// this harness file does not itself contain the literal `@ts-...` text (which
+// would cause it to flag itself once `scripts/` was added to ROOTS).
+const TS_PREFIX = "@" + "ts-";
+const TS_IGNORE_NAME = `'${TS_PREFIX}ignore' directive`;
+const TS_EXPECT_ERROR_NAME = `'${TS_PREFIX}expect-error' directive`;
+
 const RULES: ReadonlyArray<Rule> = [
   { name: "': any' annotation", re: /:\s*any(?![A-Za-z0-9_])/g },
   { name: "'as any' assertion", re: /\bas\s+any(?![A-Za-z0-9_])/g },
   { name: "'<any>' generic", re: /<\s*any\s*>/g },
   { name: "'any[]' array type", re: /\bany\s*\[\s*\]/g },
-  { name: "'@ts-ignore' directive", re: /@ts-ignore\b/g },
-  { name: "'@ts-expect-error' directive", re: /@ts-expect-error\b/g },
+  { name: TS_IGNORE_NAME, re: new RegExp(TS_PREFIX + "ignore\\b", "g") },
+  {
+    name: TS_EXPECT_ERROR_NAME,
+    re: new RegExp(TS_PREFIX + "expect-error\\b", "g"),
+  },
 ];
 
 interface Violation {
@@ -59,7 +71,9 @@ function walk(dir: string, out: string[]): void {
   }
 }
 
-const DIRECTIVE_RE = /@ts-(?:ignore|expect-error)\b/;
+const DIRECTIVE_RE = new RegExp(
+  TS_PREFIX + "(?:ignore|expect-error)\\b",
+);
 
 function scan(file: string): Violation[] {
   const src = readFileSync(file, "utf8");
@@ -68,13 +82,13 @@ function scan(file: string): Violation[] {
   let inBlock = false;
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i] ?? "";
-    // `@ts-ignore` / `@ts-expect-error` are always violations regardless of
-    // surrounding syntax — they only ever appear in comments.
+    // Suppression directives are always violations regardless of surrounding
+    // syntax — they only ever appear in comments in real source code.
     const directiveHit = DIRECTIVE_RE.exec(raw);
     if (directiveHit) {
       const name = directiveHit[0].includes("expect-error")
-        ? "'@ts-expect-error' directive"
-        : "'@ts-ignore' directive";
+        ? TS_EXPECT_ERROR_NAME
+        : TS_IGNORE_NAME;
       out.push({ file, line: i + 1, rule: name, text: raw.trim() });
     }
     // For the type-shape rules, ignore content inside `// ...`, `/* ... */`,

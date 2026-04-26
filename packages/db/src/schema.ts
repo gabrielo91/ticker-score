@@ -73,6 +73,9 @@ export const priceHistory = pgTable("price_history", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
 });
 
 /**
@@ -92,6 +95,9 @@ export const scoreSnapshots = pgTable("score_snapshots", {
     .notNull()
     .default(sql`now()`),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });

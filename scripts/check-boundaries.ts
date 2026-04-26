@@ -93,8 +93,19 @@ function check(file: string, importer: PackageName): Violation[] {
   const src = readFileSync(file, "utf8");
   const lines = src.split("\n");
   const out: Violation[] = [];
+  let inBlockComment = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
+    const trimmed = line.trimStart();
+    if (inBlockComment) {
+      if (trimmed.includes("*/")) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith("//")) continue;
+    if (trimmed.startsWith("/*")) {
+      if (!trimmed.includes("*/")) inBlockComment = true;
+      continue;
+    }
     IMPORT_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = IMPORT_RE.exec(line)) !== null) {
