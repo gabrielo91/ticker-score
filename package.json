@@ -12,6 +12,7 @@
     "validate": "turbo run validate",
     "check:boundaries": "tsx scripts/check-boundaries.ts",
     "check:no-any": "tsx scripts/check-no-any.ts",
+    "check:constitution-drift": "tsx scripts/check-constitution-drift.ts",
     "db:generate": "pnpm --filter @darkscore/db generate",
     "db:migrate": "pnpm --filter @darkscore/db migrate",
     "db:studio": "pnpm --filter @darkscore/db studio"
