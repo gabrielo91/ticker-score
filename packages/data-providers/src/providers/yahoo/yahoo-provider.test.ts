@@ -3,9 +3,21 @@ import { isErr, isOk, ok } from "@darkscore/types";
 import { YahooClient } from "./client.js";
 import { YahooFinanceProvider } from "./index.js";
 
+const SESSION_URL = "https://example.test/seed";
+const CRUMB_URL = "https://example.test/getcrumb";
+
 function buildClient(payloads: { quoteSummary?: unknown; chart?: unknown }) {
   const fetchImpl = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
+    if (url === SESSION_URL) {
+      return new Response(null, {
+        status: 200,
+        headers: { "set-cookie": "A1=token; Path=/; Domain=.yahoo.com" },
+      });
+    }
+    if (url === CRUMB_URL) {
+      return new Response("test-crumb");
+    }
     if (url.includes("/v10/finance/quoteSummary/")) {
       return new Response(JSON.stringify(payloads.quoteSummary ?? {}), {
         status: 200,
@@ -20,7 +32,11 @@ function buildClient(payloads: { quoteSummary?: unknown; chart?: unknown }) {
     }
     return new Response("not found", { status: 404 });
   });
-  return new YahooClient({ fetchImpl });
+  return new YahooClient({
+    fetchImpl,
+    sessionBootstrapUrl: SESSION_URL,
+    crumbUrl: CRUMB_URL,
+  });
 }
 
 const QUOTE_SUMMARY_OK = {
