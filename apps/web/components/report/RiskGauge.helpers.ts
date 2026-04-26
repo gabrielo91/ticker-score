@@ -19,6 +19,7 @@ export const RISK_ZONES: ReadonlyArray<Zone> = [
 export const RADIUS = 80;
 export const STROKE = 14;
 export const CIRCUMFERENCE = Math.PI * RADIUS;
+export const ARC_PATH = `M ${100 - RADIUS} 100 A ${RADIUS} ${RADIUS} 0 0 1 ${100 + RADIUS} 100`;
 
 export function colorForScore(score: number): string {
   for (const zone of RISK_ZONES) {
