@@ -3,9 +3,9 @@
 
 ## Current State
 
-**Status**: Wave 2 COMPLETE. Wave 3 NOT STARTED.
-**Next action**: Implement W3-1 (apps/web) — Next.js SSR report page with all React components, server-side orchestration, and Tailwind dark theme.
-**Handoff instruction**: Read this section, then review the Wave 3 task details below. Read AGENTS.md, apps/web/CONSTITUTION.md, and .specify/specs/001-darkscore-foundation/frontend-guidelines.md before writing code.
+**Status**: Wave 3 COMPLETE. Foundation spec (001-darkscore-foundation) DELIVERED.
+**Next action**: No active task. Next wave / spec is TBD by the coordinator. Candidates: end-to-end smoke test against a live ticker, Postgres migrations applied to a real DB, deploy pipeline, additional providers, persistence of `ScoreReport` to `report_history`.
+**Handoff instruction**: Read this section, then read AGENTS.md and `.specify/memory/constitution.md` before scoping the next spec. All current code is on `main`; run `pnpm turbo validate && pnpm turbo test` to confirm a clean baseline.
 **Last updated**: 2026-04-26
 
 ---
@@ -40,21 +40,44 @@
 
 **Total**: 142 unit tests across 4 packages.
 
+### Wave 3: Web App & Integration ✅
+
+Wave 3 was decomposed into four sub-tasks (the original `W3-1` row in plan.md was split during execution to keep PRs reviewable).
+
+| Task | Package | Description | Status | Verified |
+|------|---------|------------|--------|----------|
+| W3-1 | apps/web | Server-side report orchestration, `/report/[ticker]` route, ReportData assembly via DataAggregator + ScoringEngine | ✅ Done | PR #12 |
+| W3-2 | apps/web | Page 1 components (TickerBar, KPIStrip, RiskGauge, Verdict, MetricCards, ScoreBreakdown) | ✅ Done | PR #14 |
+| W3-3 | apps/web | Page 2 components (PriceChart, QuarterlyTable, EarningsUpdate, CatalystsRisks, ClipboardExport) | ✅ Done | PR #13 |
+| W3-4 | apps/web | Dark theme, layout, fonts (DM Sans + JetBrains Mono via next/font), print CSS via `@media print` + CSS variables | ✅ Done | PR #15 |
+
+**Wave 3 baseline (verified on `main` 2026-04-26):**
+- `pnpm check:boundaries` ✅
+- `pnpm check:no-any` ✅
+- `pnpm check:constitution-drift` ✅ (v3, C1–C13, 8 files scanned)
+- `pnpm turbo typecheck` ✅ 10/10
+- `pnpm turbo build` ✅ 5/5
+- `pnpm turbo test` ✅ 8/8 (142 tests passing, FULL TURBO)
+- `pnpm --filter @darkscore/web lint` ✅
+
 ---
 
 ## Active Work
 
-_No active tasks._
+_No active tasks. Foundation spec delivered._
 
 ---
 
 ## Upcoming Work
 
-### Wave 3: Web App & Integration ⏳
+_No upcoming tasks scoped. Next spec / wave to be defined by coordinator._
 
-| Task | Package | Description | Dependencies | Status |
-|------|---------|------------|--------------|--------|
-| W3-1 | apps/web | Next.js SSR report page at /report/[ticker], all React components, Tailwind dark theme | W2-1, W2-2, W2-3, W2-4 | ⏳ Not Started |
+Possible follow-ups (not yet specced):
+- Persist `ScoreReport` to `report_history` table on each `/report/[ticker]` request.
+- Apply Drizzle migrations to a managed Postgres and wire connection string in deploy env.
+- Add a second data provider (e.g., Alpha Vantage, FMP) behind the `DataProvider` interface.
+- Deployment pipeline (Vercel / Fly / etc.).
+- E2E smoke test (Playwright) hitting `/report/AAPL` against live providers.
 
 ---
 
