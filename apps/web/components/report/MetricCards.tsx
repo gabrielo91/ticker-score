@@ -1,44 +1,15 @@
 /**
  * MetricCards — section of category cards (Valuation / Financial Health /
  * Growth). Renders a 3-column grid of `DataCard`s, each card holding a
- * label/value list. Card border tint is driven by the dominant `status`
- * across its items: green = beat, amber = caution, red = miss. Status
- * resolution is in `dominantStatus` (no business logic in JSX, C12).
+ * label/value list. Card border tint follows the dominant `status` across
+ * its items. Palette lookups and `dominantStatus` live in helpers (C12).
  */
-import type { DataCard, DataPoint, StatusColor } from "@darkscore/types";
+import type { DataCard } from "@darkscore/types";
+import { STATUS_BORDER, STATUS_VALUE, dominantStatus } from "./MetricCards.helpers";
 
 interface MetricCardsProps {
   readonly title: string;
   readonly cards: ReadonlyArray<DataCard>;
-}
-
-const STATUS_BORDER: Record<StatusColor, string> = {
-  green: "border-[#00dc82]/40",
-  red: "border-[#ff4757]/40",
-  amber: "border-[#ffc107]/40",
-  blue: "border-[#06b6d4]/40",
-};
-
-const STATUS_VALUE: Record<StatusColor, string> = {
-  green: "text-[#00dc82]",
-  red: "text-[#ff4757]",
-  amber: "text-[#ffc107]",
-  blue: "text-[#06b6d4]",
-};
-
-function dominantStatus(items: ReadonlyArray<DataPoint>): StatusColor | null {
-  let red = 0;
-  let amber = 0;
-  let green = 0;
-  for (const item of items) {
-    if (item.status === "red") red++;
-    else if (item.status === "amber") amber++;
-    else if (item.status === "green") green++;
-  }
-  if (red >= Math.max(amber, green) && red > 0) return "red";
-  if (amber >= green && amber > 0) return "amber";
-  if (green > 0) return "green";
-  return null;
 }
 
 export function MetricCards({ title, cards }: MetricCardsProps): JSX.Element {
