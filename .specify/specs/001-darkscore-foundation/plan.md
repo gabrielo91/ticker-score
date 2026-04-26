@@ -1,73 +1,84 @@
 <!-- Source of truth: .specify/ directory. Maintained via spec-kit conventions. -->
+# DarkScore Foundation — Living Plan
 
-# Plan — DarkScore Foundation (Phase 0)
+## Current State
 
-This plan breaks the work into three sequential **waves**. Tasks within a wave can run in parallel; tasks across waves have dependencies.
-
-> See [spec.md](./spec.md) for goal and acceptance criteria. See [architecture.md](./architecture.md) for package boundaries. See [c4-diagrams.md](./c4-diagrams.md) for normative architectural constraints.
-
----
-
-## Wave 1 — Scaffold & Infrastructure
-
-Lay the foundation: monorepo, infrastructure, and portable governing documents.
-
-| Task ID | Title | Depends On | Status |
-|---------|-------|-----------|--------|
-| W1-1 | Initialize Turborepo monorepo scaffold | — | Not Started |
-| W1-2 | Docker Compose + Database schema | — | Not Started |
-| W1-3 | Materialize specs into `.specify/` directory | — | Not Started |
-
-**Exit criteria for Wave 1:**
-- `pnpm install` succeeds; `turbo build` runs (no packages yet, but pipeline works)
-- `docker compose up -d` starts PostgreSQL + Redis healthy
-- Drizzle migrations create all 4 tables in the local DB
-- `.specify/` directory exists with constitution, spec, plan, architecture, c4-diagrams, data-model
+**Status**: Wave 1 COMPLETE. Wave 2 NOT STARTED.  
+**Next action**: Implement W2-1 (@darkscore/types) — shared types and Zod schemas. Once types is done, implement W2-2, W2-3, W2-4 in parallel.  
+**Handoff instruction**: Read this section, then review the Wave 2 task details below. Read AGENTS.md and your package's CONSTITUTION.md before writing code.  
+**Last updated**: 2026-04-25
 
 ---
 
-## Wave 2 — Core Packages
+## Completed Work
 
-Build the five `@darkscore/*` packages bottom-up following the dependency graph in [c4-diagrams.md](./c4-diagrams.md) (L2 Container).
+### Wave 1: Scaffold & Infrastructure ✅
 
-| Task ID | Title | Depends On | Status |
-|---------|-------|-----------|--------|
-| W2-1 | Shared types package (`@darkscore/types`) | W1-1 | Not Started |
-| W2-2 | Cache package (`@darkscore/cache`) | W2-1, W1-2 | Not Started |
-| W2-3 | Data providers package (`@darkscore/data-providers`) | W2-1, W2-2 | Not Started |
-| W2-4 | Scoring engine package (`@darkscore/scoring-engine`) | W2-1 | Not Started |
+| Task | Description | Status | Verified |
+|------|------------|--------|----------|
+| W1-1 | Turborepo monorepo scaffold | ✅ Done | turbo build 5/5, turbo typecheck 8/8, 11 legacy HTML files moved |
+| W1-2 | Docker Compose + Drizzle DB schema | ✅ Done | 4 tables, migrations generated, typecheck passes |
+| W1-3 | Materialize specs into .specify/ | ✅ Done | Constitution (12 rules), spec, plan, architecture, C4 diagrams |
+| W1-4 | Harness hardening (AGENTS.md, boundary checker, no-any checker, package CONSTITUTIONs) | ✅ Done | Both checkers pass, 6 CONSTITUTION.md files, AGENTS.md |
 
-**Exit criteria for Wave 2:**
-- All four packages compile with `tsc --noEmit` — zero errors
-- Yahoo Finance adapter returns typed results for AMZN
-- Cache layer stores and retrieves with 2-hour TTL
-- Scoring engine computes ~38/100 for AMZN test fixture
-- Vitest passes for all packages with ≥80% coverage on `scoring-engine` and `data-providers`
-
----
-
-## Wave 3 — Web App & Integration
-
-Wire all packages into the Next.js application and reproduce the legacy report visual quality.
-
-| Task ID | Title | Depends On | Status |
-|---------|-------|-----------|--------|
-| W3-1 | Next.js report page with React components | W2-1, W2-2, W2-3, W2-4 | Not Started |
-
-**Exit criteria for Wave 3:**
-- `apps/web` starts and `/report/AMZN` SSR-renders the full dark-themed report
-- Visual quality matches `legacy/index.html`
-- Legacy HTML reports moved to `legacy/` folder
-- `turbo lint` and `turbo typecheck` pass across the monorepo
+**Post-Wave 1 fixes applied:**
+- C8 updated: explicit context chain (AGENTS.md → CONSTITUTION.md → task → files)
+- C12 added: Frontend Layering (Presentation-Domain-Data)
+- C13 added: Living Plan Protocol (this document)
+- Breadcrumb links added to all CONSTITUTION.md files
+- frontend-guidelines.md created
+- Stale references fixed (C1-C11 → C1-C13)
 
 ---
 
-## Dependency Order Summary
+## Active Work
 
-```
-W1-1 ─┐
-W1-2 ─┼── W2-1 ── W2-2 ── W2-3 ──┐
-W1-3 ─┘           └── W2-4 ──────┴── W3-1
-```
+_No active tasks._
 
-W1-3 (this task) is independent of all code work — it only materializes governance documents.
+---
+
+## Upcoming Work
+
+### Wave 2: Core Packages ⏳
+
+**Dependency order**: W2-1 FIRST (types is a leaf dependency), then W2-2, W2-3, W2-4 in parallel.
+
+| Task | Package | Description | Dependencies | Status |
+|------|---------|------------|--------------|--------|
+| W2-1 | @darkscore/types | Shared TypeScript types + Zod schemas (TickerInfo, Financials, RiskScore, ReportData, Result<T>, DataProvider interface) | None | ⏳ Not Started |
+| W2-2 | @darkscore/cache | Redis cache layer (ioredis, CacheService, key builder, 2hr TTL) | W2-1 (types) | ⏳ Not Started |
+| W2-3 | @darkscore/data-providers | Yahoo Finance adapter, ProviderRegistry, DataAggregator, Zod response schemas | W2-1 (types), W2-2 (cache) | ⏳ Not Started |
+| W2-4 | @darkscore/scoring-engine | EditorialStrategy, Valuation/Health/Growth scorers, thresholds, rating mapper | W2-1 (types) | ⏳ Not Started |
+
+### Wave 3: Web App & Integration ⏳
+
+| Task | Package | Description | Dependencies | Status |
+|------|---------|------------|--------------|--------|
+| W3-1 | apps/web | Next.js SSR report page at /report/[ticker], all React components, Tailwind dark theme | W2-1, W2-2, W2-3, W2-4 | ⏳ Not Started |
+
+---
+
+## Verification Checkpoints
+
+After each wave, these must pass before moving to the next:
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm turbo build` | All packages compile |
+| `pnpm turbo typecheck` | Zero type errors |
+| `pnpm turbo validate` | Boundary checker + no-any checker + lint |
+| `pnpm turbo test` | All unit tests pass |
+
+---
+
+## Document Map
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Constitution | `.specify/memory/constitution.md` | Immutable rules (C1-C13) |
+| Architecture | `.specify/specs/001-darkscore-foundation/architecture.md` | Folder structure, dependency graph, data flow |
+| Data Model | `.specify/specs/001-darkscore-foundation/data-model.md` | Database schema (4 tables) |
+| C4 Diagrams | `.specify/specs/001-darkscore-foundation/c4-diagrams.md` | L1 Context, L2 Container, L3 Components |
+| Frontend Guidelines | `.specify/specs/001-darkscore-foundation/frontend-guidelines.md` | Presentation-Domain-Data layering |
+| Agent Entry Point | `AGENTS.md` | File map, dependency rules, forbidden patterns |
+

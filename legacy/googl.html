@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOOGL Dark Risk Score Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --card-bg: #11131a;
+  --border: #1e2130;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.5; }
+.report { max-width: 1080px; margin: 0 auto; padding: 32px 24px; }
+.page { margin-bottom: 48px; }
+.page-break { page-break-before: always; }
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: box-shadow .25s;
+}
+.card:hover { box-shadow: 0 0 24px rgba(59,130,246,.08); }
+.section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px; font-family: var(--font-body); }
+
+/* Ticker Bar */
+.ticker-bar { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 24px; }
+.ticker-logo { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--blue); }
+.ticker-name { font-size: 14px; color: var(--text-dim); }
+.ticker-sector { font-size: 11px; color: var(--text-muted); }
+.ticker-price { font-family: var(--font-mono); font-size: 32px; font-weight: 700; margin-left: auto; }
+.ticker-change { font-family: var(--font-mono); font-size: 14px; color: var(--green); }
+.range-bar-wrap { width: 100%; margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+.range-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
+.range-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); border-radius: 2px; }
+.range-marker { position: absolute; top: -6px; width: 8px; height: 16px; background: var(--cyan); border-radius: 2px; transform: translateX(-50%); }
+.ticker-stats { display: flex; gap: 24px; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 4px; width: 100%; justify-content: flex-end; }
+
+/* Grid layouts */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 768px) {
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* KPI mini cards */
+.kpi-card { text-align: center; padding: 14px 8px; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+.kpi-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+.kpi-status { font-size: 10px; margin-top: 4px; }
+.status-green { color: var(--green); }
+.status-red { color: var(--red); }
+.status-amber { color: var(--amber); }
+
+/* Gauge */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; margin-bottom: 24px; }
+.gauge-ring { width: 200px; height: 200px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
+.gauge-bg { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) 90deg, var(--amber) 140deg, var(--red) 280deg, var(--red) 360deg); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); opacity: .25; }
+.gauge-fill { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) calc(var(--angle) * .75), transparent calc(var(--angle) * .75)); mask: radial-gradient(transparent 65%, black 66%); -webkit-mask: radial-gradient(transparent 65%, black 66%); animation: gaugeIn 1.5s ease-out forwards; --angle: 0deg; }
+@keyframes gaugeIn { to { --angle: 115.2deg; } }
+@property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.gauge-center { position: relative; text-align: center; z-index: 1; }
+.gauge-score { font-family: var(--font-mono); font-size: 48px; font-weight: 700; }
+.gauge-max { font-family: var(--font-mono); font-size: 16px; color: var(--text-muted); }
+.gauge-label { margin-top: 12px; font-size: 16px; font-weight: 600; color: var(--green); letter-spacing: 1px; }
+
+/* Chart */
+.chart-wrap { padding: 20px; margin-bottom: 24px; }
+.chart-svg { width: 100%; height: auto; }
+
+/* Score bars */
+.score-bar-wrap { margin-bottom: 16px; }
+.score-bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.score-bar-label { font-weight: 600; }
+.score-bar-value { font-family: var(--font-mono); font-weight: 600; }
+.score-bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 4px; transition: width 1.5s ease-out; }
+.score-bar-note { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Data card items */
+.data-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.data-item:last-child { border-bottom: none; }
+.data-item-label { color: var(--text-dim); }
+.data-item-value { font-family: var(--font-mono); font-weight: 600; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.card-subtitle { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+
+/* Table */
+.q-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.q-table th { font-family: var(--font-body); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.q-table td { font-family: var(--font-mono); padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+.q-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+.q-table tbody tr:hover td { background: rgba(59,130,246,.05); }
+
+/* Catalyst list */
+.catalyst-list li { padding: 4px 0; line-height: 1.6; }
+
+/* Clipboard button */
+#copyBtn { position: fixed; bottom: 24px; right: 24px; background: var(--blue); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 20px rgba(59,130,246,.35); z-index: 100; transition: transform .15s, box-shadow .15s; }
+#copyBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(59,130,246,.45); }
+.toast { position: fixed; bottom: 80px; right: 24px; background: var(--green); color: #000; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font-body); opacity: 0; transform: translateY(10px); transition: opacity .3s, transform .3s; z-index: 100; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Print */
+@media print {
+  body { background: var(--bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page-break { page-break-before: always; }
+  #copyBtn, .toast { display: none !important; }
+  .card:hover { box-shadow: none; }
+  .report { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="report">
+<!-- PAGE 1 -->
+<div class="page" id="page1">
+
+<!-- Ticker Bar -->
+<div class="card ticker-bar">
+  <div>
+    <div class="ticker-logo">GOOGL</div>
+    <div class="ticker-name">Alphabet Inc.</div>
+    <div class="ticker-sector">Technology / Internet & AI</div>
+  </div>
+  <div style="text-align:right;margin-left:auto">
+    <div class="ticker-price">$341.68</div>
+    <div class="ticker-change">+$5.64 (+1.68%)</div>
+  </div>
+  <div class="range-bar-wrap">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;width:100%">52-Week Range</div>
+    <span>$148.66</span>
+    <div class="range-track">
+      <div class="range-fill" style="width:100%"></div>
+      <div class="range-marker" style="left:73.16%"></div>
+    </div>
+    <span>$412.49</span>
+  </div>
+  <div class="ticker-stats">
+    <span>Mkt Cap: <strong>$4.13T</strong></span>
+    <span>Volume: <strong>18.78M</strong></span>
+  </div>
+</div>
+
+<!-- Risk Score Gauge -->
+<div class="card gauge-wrap">
+  <div class="section-title">Dark Risk Score</div>
+  <div class="gauge-ring">
+    <div class="gauge-bg"></div>
+    <div class="gauge-fill"></div>
+    <div class="gauge-center">
+      <div class="gauge-score">32</div>
+      <div class="gauge-max">/ 100</div>
+    </div>
+  </div>
+  <div class="gauge-label">Low-Moderate Risk</div>
+</div>
+
+<!-- KPI Strip -->
+<div class="grid-6">
+  <div class="card kpi-card"><div class="kpi-label">P/E (TTM)</div><div class="kpi-value status-amber">31.12x</div><div class="kpi-status status-amber">Fair for growth</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Fwd P/E</div><div class="kpi-value status-amber">27.55x</div><div class="kpi-status status-amber">Premium</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Revenue TTM</div><div class="kpi-value status-green">$402.8B</div><div class="kpi-status status-green">First &gt;$400B</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Net Margin</div><div class="kpi-value status-green">32.8%</div><div class="kpi-status status-green">Strong</div></div>
+  <div class="card kpi-card"><div class="kpi-label">FCF</div><div class="kpi-value status-green">Strong</div><div class="kpi-status status-green">Robust</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Debt/Equity</div><div class="kpi-value status-green">Low</div><div class="kpi-status status-green">Minimal</div></div>
+</div>
+
+<!-- 12-Month Price Chart -->
+<div class="card chart-wrap">
+  <div class="section-title">12-Month Price History</div>
+  <svg class="chart-svg" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--blue)" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="var(--blue)" stop-opacity=".02"/>
+      </linearGradient>
+    </defs>
+    <!-- Grid -->
+    <g stroke="#1e2130" stroke-width="1">
+      <line x1="60" y1="30" x2="60" y2="300"/>
+      <line x1="60" y1="300" x2="960" y2="300"/>
+      <line x1="60" y1="30" x2="960" y2="30" stroke-dasharray="4"/>
+      <line x1="60" y1="97.5" x2="960" y2="97.5" stroke-dasharray="4"/>
+      <line x1="60" y1="165" x2="960" y2="165" stroke-dasharray="4"/>
+      <line x1="60" y1="232.5" x2="960" y2="232.5" stroke-dasharray="4"/>
+    </g>
+    <!-- Y-axis labels -->
+    <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">
+      <text x="52" y="34" text-anchor="end">$400</text>
+      <text x="52" y="101" text-anchor="end">$340</text>
+      <text x="52" y="169" text-anchor="end">$280</text>
+      <text x="52" y="236" text-anchor="end">$220</text>
+      <text x="52" y="304" text-anchor="end">$160</text>
+    </g>
+    <!-- X-axis labels -->
+    <g fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">
+      <text x="100" y="325">May</text>
+      <text x="178" y="325">Jun</text>
+      <text x="256" y="325">Jul</text>
+      <text x="334" y="325">Aug</text>
+      <text x="412" y="325">Sep</text>
+      <text x="490" y="325">Oct</text>
+      <text x="568" y="325">Nov</text>
+      <text x="646" y="325">Dec</text>
+      <text x="724" y="325">Jan</text>
+      <text x="802" y="325">Feb</text>
+      <text x="880" y="325">Mar</text>
+      <text x="958" y="325">Apr</text>
+    </g>
+    <!-- Gradient fill area -->
+    <polygon points="100,288.75 178,260.625 256,243.75 334,255 412,232.5 490,198.75 568,153.75 646,131.25 724,52.5 802,86.25 880,125.625 958,95.25 958,300 100,300" fill="url(#chartGrad)"/>
+    <!-- Price line -->
+    <polyline points="100,288.75 178,260.625 256,243.75 334,255 412,232.5 490,198.75 568,153.75 646,131.25 724,52.5 802,86.25 880,125.625 958,95.25" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- Annotation dots -->
+    <circle cx="724" cy="52.5" r="6" fill="var(--green)" opacity=".9"/>
+    <text x="724" y="40" fill="var(--green)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">52W High $412.49</text>
+    <circle cx="646" cy="131.25" r="6" fill="var(--blue)" opacity=".9"/>
+    <text x="646" y="118" fill="var(--blue)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="middle">Q4 Cloud +48%</text>
+    <circle cx="958" cy="95.25" r="6" fill="var(--blue)" opacity=".9"/>
+    <text x="920" y="82" fill="var(--blue)" font-family="DM Sans, sans-serif" font-size="10" text-anchor="end">Q1 2026 EPS $10.82</text>
+  </svg>
+</div>
+
+
+
+
+<!-- Valuation Cards -->
+<div class="section-title">Valuation</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">P/E Ratio</div>
+    <div class="data-item"><span class="data-item-label">TTM P/E</span><span class="data-item-value status-amber">31.12x</span></div>
+    <div class="data-item"><span class="data-item-label">Forward P/E</span><span class="data-item-value status-amber">27.55x</span></div>
+    <div class="data-item"><span class="data-item-label">P/S</span><span class="data-item-value status-amber">9.59x</span></div>
+    <div class="card-subtitle">Premium to broader market; fair given growth profile.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Enterprise Value</div>
+    <div class="data-item"><span class="data-item-label">EV/EBITDA</span><span class="data-item-value status-amber">20.82x</span></div>
+    <div class="data-item"><span class="data-item-label">EV/Revenue</span><span class="data-item-value status-amber">9.34x</span></div>
+    <div class="data-item"><span class="data-item-label">PEG Ratio</span><span class="data-item-value status-amber">1.86x</span></div>
+    <div class="card-subtitle">Elevated multiples reflect AI/Cloud optimism.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Relative Value</div>
+    <div class="data-item"><span class="data-item-label">vs MSFT (19.65x fwd)</span><span class="data-item-value status-amber">Premium</span></div>
+    <div class="data-item"><span class="data-item-label">vs META (22x fwd)</span><span class="data-item-value status-amber">Premium</span></div>
+    <div class="data-item"><span class="data-item-label">Rev growth justifies</span><span class="data-item-value status-green">Yes</span></div>
+    <div class="card-subtitle">Trades at premium to mega-cap peers, supported by Cloud +48%.</div>
+  </div>
+</div>
+
+<!-- Financial Health Cards -->
+<div class="section-title">Financial Health</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">Balance Sheet</div>
+    <div class="data-item"><span class="data-item-label">Cash</span><span class="data-item-value status-green">~$95B</span></div>
+    <div class="data-item"><span class="data-item-label">Net Debt</span><span class="data-item-value status-green">Minimal</span></div>
+    <div class="data-item"><span class="data-item-label">D/E</span><span class="data-item-value status-green">Low</span></div>
+    <div class="data-item"><span class="data-item-label">Liquidity</span><span class="data-item-value status-green">Excellent</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cash Flow</div>
+    <div class="data-item"><span class="data-item-label">OCF</span><span class="data-item-value status-green">Strong</span></div>
+    <div class="data-item"><span class="data-item-label">FCF</span><span class="data-item-value status-green">Robust</span></div>
+    <div class="data-item"><span class="data-item-label">Buyback</span><span class="data-item-value status-green">$70B active</span></div>
+    <div class="card-subtitle">Self-funds $175-185B 2026 capex from internal cash.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Profitability</div>
+    <div class="data-item"><span class="data-item-label">Gross Margin</span><span class="data-item-value status-green">~58%</span></div>
+    <div class="data-item"><span class="data-item-label">Operating Margin</span><span class="data-item-value status-green">32%</span></div>
+    <div class="data-item"><span class="data-item-label">Net Margin</span><span class="data-item-value status-green">32.8%</span></div>
+    <div class="data-item"><span class="data-item-label">ROE</span><span class="data-item-value status-green">Strong</span></div>
+  </div>
+</div>
+
+<!-- Growth Cards -->
+<div class="section-title">Growth</div>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">Revenue Growth</div>
+    <div class="data-item"><span class="data-item-label">FY2025</span><span class="data-item-value status-green">$402.8B (+15%)</span></div>
+    <div class="data-item"><span class="data-item-label">Q4 2025</span><span class="data-item-value status-green">$113.8B (+16%)</span></div>
+    <div class="data-item"><span class="data-item-label">Milestone</span><span class="data-item-value status-green">First &gt;$400B year</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cloud & AI</div>
+    <div class="data-item"><span class="data-item-label">Cloud Q4</span><span class="data-item-value status-green">+48% YoY</span></div>
+    <div class="data-item"><span class="data-item-label">Cloud Run Rate</span><span class="data-item-value status-green">&gt;$70B</span></div>
+    <div class="data-item"><span class="data-item-label">Backlog</span><span class="data-item-value status-green">$240B (+55% QoQ)</span></div>
+    <div class="card-subtitle">Fastest growth among hyperscalers.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Earnings Growth</div>
+    <div class="data-item"><span class="data-item-label">EPS 2025</span><span class="data-item-value status-green">$10.81</span></div>
+    <div class="data-item"><span class="data-item-label">Q4 Profit</span><span class="data-item-value status-green">+31% YoY</span></div>
+    <div class="data-item"><span class="data-item-label">Search</span><span class="data-item-value status-green">+14.5%</span></div>
+    <div class="data-item"><span class="data-item-label">Q1 2026 EPS</span><span class="data-item-value status-green">$10.82</span></div>
+  </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Score Breakdown</div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Valuation Score</span><span class="score-bar-value">62 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="62%"></div></div>
+    <div class="score-bar-note">Fair</div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Financial Health Score</span><span class="score-bar-value">85 / 100 <span style="color:var(--text-muted);font-size:11px">(35% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),var(--green))" data-width="85%"></div></div>
+    <div class="score-bar-note">Excellent</div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="score-bar-header"><span class="score-bar-label">Growth Score</span><span class="score-bar-value">88 / 100 <span style="color:var(--text-muted);font-size:11px">(30% weight)</span></span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:linear-gradient(90deg,var(--green),var(--cyan))" data-width="88%"></div></div>
+    <div class="score-bar-note">Outstanding</div>
+  </div>
+  <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:13px;font-weight:600">Composite Risk Score</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--green)">32 / 100</span>
+  </div>
+  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Higher component scores → lower risk. Inverted composite.</div>
+</div>
+
+</div>
+
+
+<!-- PAGE 2 -->
+<div class="page page-break" id="page2">
+
+<!-- Quarterly Trend Table -->
+<div class="card" style="margin-bottom:24px;overflow-x:auto">
+  <div class="section-title">Quarterly Trend</div>
+  <table class="q-table">
+    <thead>
+      <tr><th>Quarter</th><th>Revenue ($B)</th><th>Rev Growth</th><th>Op Income ($B)</th><th>Op Margin</th><th>Cloud Rev ($B)</th><th>Cloud Growth</th><th>EPS</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Q1 2025</td><td>$86.3</td><td>+12%</td><td>$29.4</td><td>34.1%</td><td>$12.3</td><td>+28%</td><td>$2.81</td></tr>
+      <tr><td>Q2 2025</td><td>$88.3</td><td>+14%</td><td>$29.6</td><td>33.5%</td><td>$13.1</td><td>+29%</td><td>$2.12</td></tr>
+      <tr><td>Q3 2025</td><td>$102.3</td><td>+16%</td><td>$31.2*</td><td>30.5%</td><td>$15.2</td><td>+34%</td><td>$2.87</td></tr>
+      <tr><td>Q4 2025</td><td>$113.8</td><td>+16%</td><td>$36.5</td><td>32.1%</td><td>$17.5</td><td>+48%</td><td>$3.03</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:8px">*Q3 includes $3.5B EC fine. Adj. operating margin 33.9%.</div>
+</div>
+
+<!-- Latest Earnings -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Latest Earnings & Cloud Update</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="card-title">Q4 2025 Results <span style="font-size:11px;color:var(--text-muted)">(reported Feb 2026)</span></div>
+      <div class="data-item"><span class="data-item-label">Revenue</span><span class="data-item-value status-green">$113.8B (+16%) ✅ beat</span></div>
+      <div class="data-item"><span class="data-item-label">Cloud Growth</span><span class="data-item-value status-green">+48% YoY</span></div>
+      <div class="data-item"><span class="data-item-label">Cloud Backlog</span><span class="data-item-value status-green">$240B (+55% QoQ)</span></div>
+      <div class="data-item"><span class="data-item-label">FY2025 EPS</span><span class="data-item-value">$10.81</span></div>
+    </div>
+    <div>
+      <div class="card-title">Latest & Upcoming</div>
+      <div class="data-item"><span class="data-item-label">Q1 2026 EPS</span><span class="data-item-value status-green">$10.82</span></div>
+      <div class="data-item"><span class="data-item-label">2026E CapEx</span><span class="data-item-value status-amber">$175–185B</span></div>
+      <div class="data-item"><span class="data-item-label">Buyback</span><span class="data-item-value status-green">$70B active</span></div>
+      <div class="data-item"><span class="data-item-label">Q1 2026 Reported</span><span class="data-item-value" style="color:var(--blue)">April 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Catalysts vs Risks -->
+<div class="section-title">Catalysts vs Risks</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+  <div class="card" style="border-color:rgba(34,197,94,.25)">
+    <div class="card-title" style="color:var(--green)">⬆ Catalysts</div>
+    <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
+      <li>Cloud +48% — fastest growth among hyperscalers</li>
+      <li>Backlog $240B (+55% QoQ) — multi-year visibility</li>
+      <li>Gemini 3 launch driving AI momentum</li>
+      <li>YouTube + Subscriptions +21%</li>
+      <li>Search resilience +14.5% despite AI fears</li>
+      <li>$70B buyback active — strong capital return</li>
+      <li>Waymo leadership in autonomous driving</li>
+    </ol>
+  </div>
+  <div class="card" style="border-color:rgba(239,68,68,.25)">
+    <div class="card-title" style="color:var(--red)">⬇ Risks</div>
+    <ol class="catalyst-list" style="padding-left:18px;font-size:13px;color:var(--text-dim);list-style:decimal">
+      <li>$175–185B 2026 CapEx — massive infrastructure spend</li>
+      <li>DOJ antitrust — potential remedies pending</li>
+      <li>EU regulatory fines ($3.5B EC fine in Q3)</li>
+      <li>AI disruption to Search ad model</li>
+      <li>Stock down 17% from $412.49 highs</li>
+      <li>Premium valuation vs peers (MSFT, META)</li>
+      <li>AI infrastructure ROI uncertainty</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Verdict -->
+<div class="card" style="margin-bottom:24px">
+  <div class="section-title">Bottom Line — Verdict</div>
+  <!-- Rating bar -->
+  <div style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px">
+      <span>Strong Sell</span><span>Sell</span><span>Hold</span><span>Buy</span><span>Strong Buy</span>
+    </div>
+    <div style="height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green),#10b981);position:relative">
+      <div style="position:absolute;left:72%;top:-4px;width:4px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.5)"></div>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--green)">BUY</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span style="font-size:13px;font-weight:600">Overall Risk Score</span>
+    <span style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--green)">32 / 100 — Low-Moderate</span>
+  </div>
+  <p style="font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:20px">Alphabet's Cloud acceleration to +48% is the standout story. $240B backlog provides multi-year visibility. Search remains resilient despite AI fears. The $175B capex is the main concern, but $95B cash and $402B revenue fund it. Buy the AI infrastructure leader.</p>
+  <!-- Price Targets -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div style="text-align:center;padding:14px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:4px">Bear</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$280</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:rgba(59,130,246,.08);border-radius:8px;border:1px solid rgba(59,130,246,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:4px">Base</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$380</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:rgba(34,197,94,.08);border-radius:8px;border:1px solid rgba(34,197,94,.2)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:4px">Bull</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:700">$450</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:var(--text-muted);padding:16px 0">
+  Generated by Dark Risk Score Engine · Data as of April 25, 2026 · Not financial advice.
+</div>
+
+</div>
+</div>
+
+<!-- Clipboard Button -->
+<button id="copyBtn" onclick="copyReport()" title="Copy Report">📋 Copy Report</button>
+<div id="toast" class="toast">Copied to clipboard ✓</div>
+
+<script>
+// Animate score bars on load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar-fill[data-width]').forEach(bar => {
+      bar.style.width = bar.dataset.width;
+    });
+  }, 300);
+});
+
+function copyReport() {
+  const text = `GOOGL DARK RISK SCORE REPORT
+===========================
+Alphabet Inc. (GOOGL)
+Price: $341.68 (+$5.64, +1.68%)
+52-Week Range: $148.66 – $412.49
+Market Cap: $4.13T | Volume: 18.78M
+
+RISK SCORE: 32/100 — Low-Moderate Risk
+Rating: BUY
+
+KEY METRICS
+• P/E (TTM): 31.12x | Fwd P/E: 27.55x
+• Revenue TTM: $402.8B | Net Margin: 32.8%
+• FCF: Strong | D/E: Low
+• Operating Margin: 32% | Cash: ~$95B
+• EPS 2025: $10.81 | Q1 2026 EPS: $10.82
+
+SCORE BREAKDOWN
+• Valuation: 62/100 (35% weight)
+• Financial Health: 85/100 (35% weight)
+• Growth: 88/100 (30% weight)
+
+GROWTH HIGHLIGHTS
+• Cloud Q4: +48% YoY (fastest hyperscaler)
+• Cloud Backlog: $240B (+55% QoQ)
+• FY2025 Revenue: $402.8B (+15%, first >$400B)
+• Search: +14.5% YoY
+
+PRICE TARGETS: Bear $280 | Base $380 | Bull $450
+
+Next: Q1 2026 reported April 2026
+Generated by Dark Risk Score Engine`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+</script>
+
+</body>
+</html>
