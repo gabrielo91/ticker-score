@@ -13,6 +13,7 @@ import { join, relative, sep } from "node:path";
 
 type PackageName =
   | "@darkscore/types"
+  | "@darkscore/observability"
   | "@darkscore/cache"
   | "@darkscore/db"
   | "@darkscore/data-providers"
@@ -22,6 +23,7 @@ type PackageName =
 
 const ALLOWED: Record<PackageName, ReadonlyArray<PackageName>> = {
   "@darkscore/types": [],
+  "@darkscore/observability": [],
   "@darkscore/cache": ["@darkscore/types"],
   "@darkscore/db": ["@darkscore/types"],
   "@darkscore/data-providers": ["@darkscore/types", "@darkscore/cache"],
@@ -34,11 +36,13 @@ const ALLOWED: Record<PackageName, ReadonlyArray<PackageName>> = {
     "@darkscore/data-providers",
     "@darkscore/scoring-engine",
     "@darkscore/narrative",
+    "@darkscore/observability",
   ],
 };
 
 const PACKAGE_ROOTS: Array<{ dir: string; pkg: PackageName }> = [
   { dir: "packages/types", pkg: "@darkscore/types" },
+  { dir: "packages/observability", pkg: "@darkscore/observability" },
   { dir: "packages/cache", pkg: "@darkscore/cache" },
   { dir: "packages/db", pkg: "@darkscore/db" },
   { dir: "packages/data-providers", pkg: "@darkscore/data-providers" },

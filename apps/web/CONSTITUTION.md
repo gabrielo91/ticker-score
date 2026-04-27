@@ -5,10 +5,10 @@
 **Purpose:** Next.js app — the only orchestrator. Fetches via providers, scores via the engine, persists via db, reads cache, renders to users.
 
 ## Applicable rules
-C1 (Adapter Pattern), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error Boundaries), C7 (Spec-Driven), C8 (Agent Harness), C9 (Monorepo Hygiene), C10 (Test Expectations), C11 (Architecture Diagrams), C12 (Frontend Layering), C13 (Living Plan Protocol).
+C1 (Adapter Pattern), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error Boundaries), C7 (Spec-Driven), C8 (Agent Harness), C9 (Monorepo Hygiene), C10 (Test Expectations), C11 (Architecture Diagrams), C12 (Frontend Layering), C13 (Living Plan Protocol), C14 (Server-Side Observability).
 
 ## Allowed imports
-- `@darkscore/types`, `@darkscore/cache`, `@darkscore/db`, `@darkscore/data-providers`, `@darkscore/scoring-engine`, `@darkscore/narrative`.
+- `@darkscore/types`, `@darkscore/cache`, `@darkscore/db`, `@darkscore/data-providers`, `@darkscore/scoring-engine`, `@darkscore/narrative`, `@darkscore/observability`.
 - External: `next`, `react`, `react-dom`, plus what the spec lists. New runtime deps require a spec amendment.
 
 ## Forbidden patterns
@@ -18,6 +18,7 @@ C1 (Adapter Pattern), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error
 - No unhandled rejections reaching the UI: every server action / route handler returns a Result-shaped response and degrades gracefully (C5).
 - No business logic that belongs in `scoring-engine` or `data-providers`. The web app composes; it does not compute or fetch.
 - Server-only code (DB client, Redis client, secrets) must never be imported into a client component.
+- No `console.*` in `lib/`, `app/`, or `components/` — log via `@darkscore/observability` (C14). CLI scripts and one-shot tools are exempt.
 
 ## Reminders
 - Check the cache before calling a provider; persist the report; render whatever is available even when some pieces failed.

@@ -15,6 +15,7 @@
     "@darkscore/data-providers": "workspace:^",
     "@darkscore/db": "workspace:^",
     "@darkscore/narrative": "workspace:^",
+    "@darkscore/observability": "workspace:^",
     "@darkscore/scoring-engine": "workspace:^",
     "@darkscore/types": "workspace:^",
     "next": "^14.2.13",

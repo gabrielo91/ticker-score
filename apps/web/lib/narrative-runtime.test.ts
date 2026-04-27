@@ -7,12 +7,14 @@
  * stub provider for the failure case.
  */
 import { describe, expect, it } from "vitest";
+import { Writable } from "node:stream";
 import { CacheService, type CacheBackend } from "@darkscore/cache";
 import {
   MockNarrativeProvider,
   OPENAI_DEFAULT_MODEL,
   OPENAI_PROVIDER_NAME,
 } from "@darkscore/narrative";
+import { createLogger } from "@darkscore/observability";
 import {
   Rating,
   err,
@@ -23,6 +25,30 @@ import {
   type Result,
 } from "@darkscore/types";
 import { buildNarrativeRuntime, runNarrative } from "./narrative-runtime";
+
+function captureLogger(): {
+  logger: ReturnType<typeof createLogger>;
+  lines(): Array<Record<string, unknown>>;
+} {
+  const chunks: string[] = [];
+  const destination = new Writable({
+    write(chunk, _enc, cb) {
+      chunks.push(chunk.toString("utf8"));
+      cb();
+    },
+  });
+  const logger = createLogger({ level: "trace", destination });
+  return {
+    logger,
+    lines(): Array<Record<string, unknown>> {
+      return chunks
+        .join("")
+        .split("\n")
+        .filter((l) => l.length > 0)
+        .map((l) => JSON.parse(l) as Record<string, unknown>);
+    },
+  };
+}
 
 class MemoryBackend implements CacheBackend {
   readonly store = new Map<string, string>();
@@ -133,13 +159,35 @@ describe("runNarrative — cache-first orchestration", () => {
 
   it("fails open when the provider returns an error (no throw)", async () => {
     const cache = new CacheService(new MemoryBackend());
+    const cap = captureLogger();
     const failing: NarrativeProvider = {
       name: "broken", model: "broken-1",
       isAvailable: async () => true,
       generate: async (): Promise<Result<NarrativeData>> => err(new Error("boom")),
     };
-    const out = await runNarrative(failing, cache, buildInput());
+    const out = await runNarrative(failing, cache, buildInput(), cap.logger);
     expect(out).toEqual({ narrative: null, narrativeAvailable: false });
+  });
+
+  it("emits a structured warn with provider/ticker/code on fail-open", async () => {
+    const cache = new CacheService(new MemoryBackend());
+    const cap = captureLogger();
+    const errorWithCode = Object.assign(new Error("quota"), { code: "RATE_LIMITED" });
+    const failing: NarrativeProvider = {
+      name: "openai", model: "gpt-4o",
+      isAvailable: async () => true,
+      generate: async (): Promise<Result<NarrativeData>> => err(errorWithCode),
+    };
+    await runNarrative(failing, cache, buildInput(), cap.logger);
+    const warns = cap.lines().filter((l) => l["level"] === 40);
+    expect(warns).toHaveLength(1);
+    const [line] = warns;
+    expect(line?.["msg"]).toBe("narrative provider failed open");
+    expect(line?.["provider"]).toBe("openai");
+    expect(line?.["model"]).toBe("gpt-4o");
+    expect(line?.["ticker"]).toBe("AAPL");
+    expect(line?.["code"]).toBe("RATE_LIMITED");
+    expect(line?.["message"]).toBe("quota");
   });
 });
 

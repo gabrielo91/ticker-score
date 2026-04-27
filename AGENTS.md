@@ -6,13 +6,13 @@ Single entry point for any AI agent working in this repository. Read this file i
 
 ## Project identity
 
-DarkScore is a stock-rating platform: it fetches market data from external providers, computes a composite score via swappable strategies, persists reports, and renders them in a Next.js web app. The codebase is a pnpm + Turborepo monorepo organized as a strict layered architecture. The platform is governed by a thirteen-rule **Constitution** that is the contract between humans and agents — drift is not allowed.
+DarkScore is a stock-rating platform: it fetches market data from external providers, computes a composite score via swappable strategies, persists reports, and renders them in a Next.js web app. The codebase is a pnpm + Turborepo monorepo organized as a strict layered architecture. The platform is governed by a fourteen-rule **Constitution** that is the contract between humans and agents — drift is not allowed.
 
 ## File map
 
 | What | Where |
 |------|-------|
-| Constitution (C1–C13, normative) | `.specify/memory/constitution.md` |
+| Constitution (C1–C14, normative) | `.specify/memory/constitution.md` |
 | Active spec | `.specify/specs/001-darkscore-foundation/spec.md` |
 | Architecture notes | `.specify/specs/001-darkscore-foundation/architecture.md` |
 | C4 diagrams (L1/L2/L3, normative per C11) | `.specify/specs/001-darkscore-foundation/c4-diagrams.md` |
@@ -32,11 +32,13 @@ Source of truth: the **L2 Container diagram** in `c4-diagrams.md`. Reproduced he
 | Package | May import from |
 |---------|----------------|
 | `@darkscore/types` | Nothing (leaf) |
+| `@darkscore/observability` | Nothing (leaf — pino only) |
 | `@darkscore/cache` | `types` |
 | `@darkscore/db` | `types` |
 | `@darkscore/data-providers` | `types`, `cache` |
 | `@darkscore/scoring-engine` | `types` (ONLY — pure computation, no I/O) |
-| `apps/web` | `types`, `cache`, `db`, `data-providers`, `scoring-engine` |
+| `@darkscore/narrative` | `types`, `cache` |
+| `apps/web` | `types`, `cache`, `db`, `data-providers`, `scoring-engine`, `narrative`, `observability` |
 
 Any `@darkscore/*` import not listed above is a **C4 violation** and will be rejected by `scripts/check-boundaries.ts`.
 
@@ -106,7 +108,7 @@ End-to-end lifecycle for any agent picking up a task. Follow these steps in orde
 - Conventional prefixes: `feat/`, `fix/`, `docs/`, `chore/`
 
 ### 3. Implement
-- Follow the Constitution (C1–C13) and your package's CONSTITUTION.md
+- Follow the Constitution (C1–C14) and your package's CONSTITUTION.md
 - Commit often with conventional commit messages: `feat: add ticker types and Zod schemas`, `fix: add updated_at to price_history per C6`
 - Do NOT create files outside your task's stated scope (C8)
 - Do NOT add dependencies not listed in the spec (C8)
