@@ -173,7 +173,9 @@ describe("TwelveDataProvider", () => {
     expect(isErr(r)).toBe(true);
   });
 
-  it("getPriceHistory transforms time_series into PricePoints", async () => {
+  it("getPriceHistory transforms time_series into PricePoints (ascending by date)", async () => {
+    // Twelve Data returns newest-first; the transform must reorder to
+    // oldest-first so the chart plots time left-to-right.
     const client = buildClient({
       timeSeries: {
         meta: { symbol: "AAPL", currency: "USD", interval: "1day" },
@@ -188,8 +190,11 @@ describe("TwelveDataProvider", () => {
     expect(isOk(r)).toBe(true);
     if (!isOk(r)) return;
     expect(r.data).toHaveLength(2);
-    expect(r.data[0]?.close).toBe(271.5);
-    expect(r.data[0]?.volume).toBe(30_000_000);
+    expect(r.data[0]?.date).toBe("2026-04-24");
+    expect(r.data[0]?.close).toBe(269.0);
+    expect(r.data[1]?.date).toBe("2026-04-25");
+    expect(r.data[1]?.close).toBe(271.5);
+    expect(r.data[1]?.volume).toBe(30_000_000);
   });
 
   it("surfaces a Twelve Data error envelope as Result.err", async () => {

@@ -235,8 +235,10 @@ function transformQuarter(
 }
 
 export function transformPriceHistory(series: TwelveDataTimeSeries): PricePoint[] {
-  // Twelve Data returns most-recent first; we keep the same ordering as the
-  // wire shape so consumers can reverse if they want chronological order.
+  // Twelve Data returns rows newest-first; the chart and every other
+  // `PricePoint[]` consumer expects ascending chronological order (oldest at
+  // index 0, latest at the end). The `datetime` field is ISO `YYYY-MM-DD`
+  // so a string sort is equivalent to a date sort.
   const out: PricePoint[] = [];
   for (const candle of series.values) {
     const close = toNumOrNull(candle.close);
@@ -250,5 +252,6 @@ export function transformPriceHistory(series: TwelveDataTimeSeries): PricePoint[
       volume: toIntOrNull(candle.volume),
     });
   }
+  out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   return out;
 }
