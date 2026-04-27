@@ -3,9 +3,9 @@
 
 ## Current State
 
-**Status**: Wave 4-2 COMPLETE (PR #32 merged to main as `01bd9c8`). OpenAI adapter (`gpt-4o-mini`, JSON-mode, T=0.2) with 10 unit tests + recorded fixture is on `main`. The `@darkscore/narrative` package now exposes `OpenAINarrativeProvider` alongside the mock provider, but no consumer wires it yet — `narrativeAvailable` still defaults to `false` in `apps/web/lib/report-generator.ts`.
-**Next action**: Start W4-4 (web orchestration): env-driven provider selection (`NARRATIVE_PROVIDER`, `OPENAI_API_KEY`, `NARRATIVE_MODEL`) in `apps/web/lib/report-generator.ts`, cache-first call against `@darkscore/cache`, and `narrativeAvailable` flag wiring. W4-3 (Anthropic) remains optional/stretch.
-**Handoff instruction**: Read this file, then [`spec.md`](./spec.md), then [`packages/narrative/CONSTITUTION.md`](../../../packages/narrative/CONSTITUTION.md) before touching code. Run `pnpm turbo validate && pnpm turbo test` to confirm a clean baseline.
+**Status**: Wave 4-4 COMPLETE (PR #34 merged to main as `61b022a`). The `apps/web` report pipeline now consumes `@darkscore/narrative` end-to-end: env-driven selection in `apps/web/lib/narrative-runtime.ts` (`NARRATIVE_PROVIDER` ∈ `openai`/`mock`/`none`), cache-first execution via `buildNarrativeCacheKey` against `@darkscore/cache` (Constitution C2), and fail-open semantics — any provider failure surfaces as `narrativeAvailable: false` and the page renders the Spec-001 layout. With no env vars set the runtime returns `provider: null` and behaviour is identical to pre-Spec-002. The narrative payload reaches `ReportData.narrative` but the UI does not yet render any of its fields.
+**Next action**: Start W4-5 (UI sections): consume `report.narrative` in `apps/web/app/report/[ticker]/page.tsx` to render catalysts/risks columns, verdict prose, card subtitles, chart annotations, and scenario targets — every section gated on `report.narrativeAvailable` so the Spec-001 layout remains the fallback. W4-3 (Anthropic) remains optional/stretch.
+**Handoff instruction**: Read this file, then [`spec.md`](./spec.md), then [`apps/web/CONSTITUTION.md`](../../../apps/web/CONSTITUTION.md) before touching code. Inspect the `NarrativeData` shape in `packages/types/src/narrative.ts` for the field surface available to the UI. Run `pnpm turbo typecheck && pnpm --filter @darkscore/web test` to confirm a clean baseline.
 **Last updated**: 2026-04-27
 
 ---
@@ -17,8 +17,8 @@
 | W4-1 | Narrative package skeleton: types, registry, content-hash cache key, mock provider, errors, tests, boundary-checker entry, package CONSTITUTION | ✅ Done (PR #30) |
 | W4-2 | OpenAI adapter (`gpt-4o-mini`, JSON-mode, T≤0.2), recorded-fixture integration test | ✅ Done (PR #32) |
 | W4-3 | *(optional)* Anthropic adapter, parallel shape | ⏳ Stretch |
-| W4-4 | `apps/web` orchestration: cache-first call to active provider after scoring; `narrativeAvailable` flag wiring | ⏳ Next |
-| W4-5 | UI sections: catalysts/risks columns, verdict prose, card subtitles, chart annotations, scenario targets — all gated on `narrativeAvailable` | ⏳ Pending W4-4 |
+| W4-4 | `apps/web` orchestration: cache-first call to active provider after scoring; `narrativeAvailable` flag wiring | ✅ Done (PR #34) |
+| W4-5 | UI sections: catalysts/risks columns, verdict prose, card subtitles, chart annotations, scenario targets — all gated on `narrativeAvailable` | ⏳ Next |
 | W4-6 | End-to-end smoke + cache-hit verification + schema-violation degradation test | ⏳ Pending W4-5 |
 
 ---
@@ -69,6 +69,26 @@
 - Env vars (consumed in W4-4): `OPENAI_API_KEY`, `NARRATIVE_PROVIDER=openai`, `NARRATIVE_MODEL`.
 - W4-2 deliberately scoped to provider class + tests + recorded fixture; web wiring deferred to W4-4 to keep PRs reviewable.
 
+### Wave 4-4: Web Orchestration ✅
+
+| Item | Where |
+|------|-------|
+| `buildNarrativeRuntime(env)` — pure factory selecting `openai` / `mock` / `none` from `NARRATIVE_PROVIDER`, with `OPENAI_API_KEY` gate and optional `NARRATIVE_MODEL` override | `apps/web/lib/narrative-runtime.ts` |
+| `getNarrativeRuntime()` — memoised on `globalThis` so Next.js cold starts / HMR don't rebuild the client per request | `apps/web/lib/narrative-runtime.ts` |
+| `runNarrative(provider, cache, input)` — cache-first via `buildNarrativeCacheKey` (C2), TTL `NARRATIVE_CACHE_TTL_SECONDS`; fail-open on missing provider, `Result.err`, or schema violation | `apps/web/lib/narrative-runtime.ts` |
+| Report pipeline calls `runNarrative` after scoring; populates `report.narrative` + `report.narrativeAvailable` | `apps/web/lib/report-generator.ts` |
+| `@darkscore/narrative` workspace dep added; `apps/web` allowed-imports updated | `apps/web/package.json`, `apps/web/CONSTITUTION.md` |
+| 8 unit tests: 5 selection branches + 3 orchestration branches (no provider, miss-then-hit, fail-open on `Result.err`) | `apps/web/lib/narrative-runtime.test.ts` |
+| `NARRATIVE_PROVIDER`, `OPENAI_API_KEY`, `NARRATIVE_MODEL` documented (default `none` keeps Spec-001 behaviour) | `.env.example` |
+
+**Verified locally (and on CI for `e7a5cf0`):**
+- `pnpm check:boundaries` ✅
+- `pnpm check:no-any` ✅
+- `pnpm turbo typecheck` ✅ 12/12
+- `pnpm turbo build` ✅ 6/6
+- `pnpm --filter @darkscore/web test` ✅ narrative-runtime 8/8, providers 4/4
+- Remote CI: ✅ Validate · ✅ Test · ✅ E2E Smoke
+
 ---
 
 ## Open Questions
@@ -88,5 +108,5 @@ This spec touches one new package and amends one existing one (`types`). The L2 
 apps/web             →  @darkscore/narrative   (new edge)
 ```
 
-The L2 diagram update lands with W4-4 (when the new edge is actually exercised), per C11.
+The L2 diagram update lands with W4-4 (when the new edge is actually exercised), per C11. As of PR #34 the edge is live in `apps/web/lib/narrative-runtime.ts` → `@darkscore/narrative` and is enforced by `scripts/check-boundaries.ts`.
 
