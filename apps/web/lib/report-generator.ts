@@ -184,6 +184,8 @@ export async function generateReport(
     dataAsOf: computedAt,
     notFinancialAdvice: true,
     fundamentalsAvailable: true,
+    narrative: null,
+    narrativeAvailable: false,
   };
 
   return ok(report);
@@ -224,6 +226,8 @@ function buildPartialReport(
     dataAsOf: computedAt,
     notFinancialAdvice: true,
     fundamentalsAvailable: false,
+    narrative: null,
+    narrativeAvailable: false,
   };
 }
 

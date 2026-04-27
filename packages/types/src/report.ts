@@ -15,6 +15,7 @@ import {
   KeyMetricsSchema,
   QuarterlyResultSchema,
 } from "./financials.js";
+import { NarrativeDataSchema } from "./narrative.js";
 import { RiskScoreSchema, ScoreBreakdownSchema } from "./score.js";
 import { PricePointSchema, TickerInfoSchema } from "./ticker.js";
 
@@ -116,6 +117,15 @@ export const ReportDataSchema = z.object({
    * isn't shown a misleading rating computed from missing data.
    */
   fundamentalsAvailable: z.boolean(),
+  /**
+   * Optional LLM-synthesized narrative (Spec 002). Present when a
+   * `NarrativeProvider` is configured and the call succeeded; absent when
+   * no provider is registered or the call failed. The UI gates rendering
+   * on `narrativeAvailable` so a missing narrative degrades to the
+   * Spec 001 layout without errors.
+   */
+  narrative: NarrativeDataSchema.nullable(),
+  narrativeAvailable: z.boolean(),
 });
 
 export type ReportData = z.infer<typeof ReportDataSchema>;
