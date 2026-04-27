@@ -23,7 +23,7 @@ import {
   ProviderRegistry,
   YahooFinanceProvider,
 } from "@darkscore/data-providers";
-import { getYahooRuntime } from "./yahoo-singleton.js";
+import { getYahooRuntime } from "./yahoo-singleton";
 import { EditorialStrategy, runScoring } from "@darkscore/scoring-engine";
 import {
   err,
