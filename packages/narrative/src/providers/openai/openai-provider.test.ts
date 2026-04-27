@@ -160,5 +160,91 @@ describe("OpenAINarrativeProvider", () => {
     if (!(r.error instanceof NarrativeError)) return;
     expect(r.error.code).toBe("TRANSPORT");
   });
+
+  // W5-2: forward-estimate guardrails — temperature pinned, salvage on bad shape.
+
+  it("pins temperature to 0 on the wire when the provider builds its own client (W5-2)", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(RECORDED_AAPL_RESPONSE, {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    // No `client` injected: the provider must build its own and pin
+    // temperature to NARRATIVE_TEMPERATURE (0). This guards the
+    // anti-hallucination contract for the production code path.
+    const p = new OpenAINarrativeProvider({
+      apiKey: "sk-test",
+      fetchImpl,
+      now: () => new Date("2026-04-27T12:00:00.000Z"),
+    });
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const init = fetchImpl.mock.calls[0]?.[1];
+    const rawBody = typeof init?.body === "string" ? init.body : "{}";
+    const wireBody = JSON.parse(rawBody) as { temperature?: number };
+    expect(wireBody.temperature).toBe(0);
+  });
+
+  it("parses forwardEstimates from a valid recorded response", async () => {
+    const p = buildProvider(RECORDED_AAPL_RESPONSE);
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    const fwd = (r.data as { forwardEstimates: unknown }).forwardEstimates;
+    expect(fwd).not.toBeNull();
+    if (fwd === null || typeof fwd !== "object") return;
+    const typed = fwd as { confidenceLevel: string; reasoning: string };
+    expect(typed.confidenceLevel).toMatch(/^(high|medium|low)$/u);
+    expect(typeof typed.reasoning).toBe("string");
+    expect(typed.reasoning.length).toBeGreaterThan(0);
+  });
+
+  it("salvages forwardEstimates to null when the model omits the field", async () => {
+    const inner = innerContent(RECORDED_AAPL_RESPONSE);
+    delete inner.forwardEstimates;
+    const p = buildProvider(envelope(inner));
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect((r.data as { forwardEstimates: unknown }).forwardEstimates).toBeNull();
+  });
+
+  it("salvages forwardEstimates to null when the model returns a malformed object", async () => {
+    const inner = innerContent(RECORDED_AAPL_RESPONSE);
+    // Confidence must be an enum, "definitely" is invalid → ForwardEstimatesSchema rejects.
+    inner.forwardEstimates = {
+      forwardPE: 30,
+      earningsGrowthForward: 0.1,
+      revenueGrowthForward: 0.05,
+      ebitdaGrowthForward: null,
+      analystConsensus: "buy",
+      confidenceLevel: "definitely",
+      reasoning: "n/a",
+    };
+    const p = buildProvider(envelope(inner));
+    const r = await p.generate(buildNarrativeInputFixture());
+    // Whole-document parse must still succeed; forwardEstimates degrades to null.
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect((r.data as { forwardEstimates: unknown }).forwardEstimates).toBeNull();
+  });
 });
+
+/** Extract the inner narrative JSON from a recorded OpenAI envelope response. */
+function innerContent(envelopeJson: string): Record<string, unknown> {
+  const env = JSON.parse(envelopeJson) as { choices: { message: { content: string } }[] };
+  const first = env.choices[0];
+  if (first === undefined) throw new Error("test fixture missing choices[0]");
+  return JSON.parse(first.message.content) as Record<string, unknown>;
+}
+
+/** Re-pack a mutated narrative JSON into the OpenAI envelope shape. */
+function envelope(inner: Record<string, unknown>): string {
+  return JSON.stringify({
+    choices: [{ message: { role: "assistant", content: JSON.stringify(inner) } }],
+  });
+}
 

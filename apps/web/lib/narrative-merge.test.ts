@@ -85,6 +85,7 @@ function buildNarrative(overrides: Partial<NarrativeData> = {}): NarrativeData {
     priceTargets: { bear: 180, base: 220, bull: 260 },
     verdict: { headline: "Quality compounder at full valuation", paragraph: "Apple's services growth offsets hardware maturity." },
     disclaimer: "Educational analysis only. Not investment advice.",
+    forwardEstimates: null,
     providerName: "openai",
     model: "gpt-4o-mini",
     generatedAt: NOW,

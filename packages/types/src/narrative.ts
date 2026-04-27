@@ -70,6 +70,39 @@ export const NarrativeVerdictSchema = z.object({
 });
 export type NarrativeVerdict = z.infer<typeof NarrativeVerdictSchema>;
 
+const FORWARD_REASONING_MAX = 600;
+
+export const AnalystConsensusSchema = z.enum([
+  "strong_buy",
+  "buy",
+  "hold",
+  "sell",
+  "strong_sell",
+]);
+export type AnalystConsensus = z.infer<typeof AnalystConsensusSchema>;
+
+export const ForwardEstimateConfidenceSchema = z.enum(["high", "medium", "low"]);
+export type ForwardEstimateConfidence = z.infer<
+  typeof ForwardEstimateConfidenceSchema
+>;
+
+/**
+ * LLM-produced forward-looking estimates (W5-2). Every numeric field MUST be
+ * either a finite number or `null` — the prompt forbids guessing. A
+ * `confidenceLevel` and a free-form `reasoning` string are required so the
+ * orchestrator can audit which data points the model used.
+ */
+export const ForwardEstimatesSchema = z.object({
+  forwardPE: z.number().finite().nullable(),
+  earningsGrowthForward: z.number().finite().nullable(),
+  revenueGrowthForward: z.number().finite().nullable(),
+  ebitdaGrowthForward: z.number().finite().nullable(),
+  analystConsensus: AnalystConsensusSchema.nullable(),
+  confidenceLevel: ForwardEstimateConfidenceSchema,
+  reasoning: z.string().min(1).max(FORWARD_REASONING_MAX),
+});
+export type ForwardEstimates = z.infer<typeof ForwardEstimatesSchema>;
+
 export const NarrativeDataSchema = z.object({
   cardSubtitles: NarrativeCardSubtitlesSchema,
   chartAnnotations: z.array(NarrativeAnnotationSchema).max(5),
@@ -78,6 +111,10 @@ export const NarrativeDataSchema = z.object({
   priceTargets: NarrativePriceTargetsSchema,
   verdict: NarrativeVerdictSchema,
   disclaimer: z.string().min(1),
+  /** Optional forward estimates — `null` when the model could not estimate
+   * confidently, or when the response failed `ForwardEstimatesSchema` and
+   * the provider salvaged the rest of the narrative. */
+  forwardEstimates: ForwardEstimatesSchema.nullable(),
   /** Provider name + model that produced this narrative (for audit + cache key). */
   providerName: z.string().min(1),
   model: z.string().min(1),

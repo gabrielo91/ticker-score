@@ -48,9 +48,11 @@ import {
   type DataCard,
   type DataPoint,
   type Financials,
+  type ForwardEstimates,
   type GrowthData,
   type KeyMetrics,
   type KpiHighlight,
+  type NarrativeData,
   type PricePoint,
   type QuarterlyResult,
   type ReportData,
@@ -183,16 +185,23 @@ export async function generateReport(
     priceHistory,
   });
 
+  // W5-2: backfill forward-looking metrics from the narrative ONLY where the
+  // upstream data provider returned `null`. Real provider data always wins
+  // over LLM estimates — the LLM is the fallback, never the override.
+  const narrativeForward = pickForwardEstimates(narrativeOutcome.narrative);
+  const enrichedKeyMetrics = applyForwardKeyMetrics(keyMetrics, narrativeForward);
+  const enrichedGrowth = applyForwardGrowth(growth, narrativeForward);
+
   const report: ReportData = {
     ticker: tickerInfo,
     priceChart: { points: priceHistory, annotations: [] },
-    kpiStrip: buildKpiStrip(tickerInfo, keyMetrics),
-    valuationCards: buildValuationCards(keyMetrics),
+    kpiStrip: buildKpiStrip(tickerInfo, enrichedKeyMetrics),
+    valuationCards: buildValuationCards(enrichedKeyMetrics),
     financialHealthCards: buildFinancialHealthCards(financials),
-    growthCards: buildGrowthCards(growth),
+    growthCards: buildGrowthCards(enrichedGrowth),
     financials,
-    keyMetrics,
-    growth,
+    keyMetrics: enrichedKeyMetrics,
+    growth: enrichedGrowth,
     quarterlyResults: quarterly,
     scoreBreakdown: scoring.data.breakdown,
     riskScore: scoring.data.breakdown.composite,
@@ -541,5 +550,55 @@ function emptyScoreBreakdown(computedAt: string): ScoreBreakdown {
     components: [],
     composite: emptyRiskScore(computedAt),
   };
+}
+
+/**
+ * W5-2: extract the LLM's forward estimates when the narrative call
+ * succeeded. Returns `null` for every other outcome (no provider, transport
+ * error, schema rejection) so callers degrade silently to provider-only data.
+ */
+function pickForwardEstimates(
+  narrative: NarrativeData | null,
+): ForwardEstimates | null {
+  return narrative === null ? null : narrative.forwardEstimates;
+}
+
+/**
+ * W5-2: backfill `KeyMetrics.peRatioForward` only when the upstream provider
+ * returned `null`. Real provider data always wins over LLM estimates.
+ */
+function applyForwardKeyMetrics(
+  base: KeyMetrics,
+  forward: ForwardEstimates | null,
+): KeyMetrics {
+  if (forward === null) return base;
+  if (base.peRatioForward !== null || forward.forwardPE === null) return base;
+  return { ...base, peRatioForward: forward.forwardPE };
+}
+
+/**
+ * W5-2: backfill the three forward `GrowthData` slots only where the
+ * upstream provider returned `null`. The LLM never overwrites a real number.
+ */
+function applyForwardGrowth(
+  base: GrowthData,
+  forward: ForwardEstimates | null,
+): GrowthData {
+  if (forward === null) return base;
+  const next: GrowthData = { ...base };
+  let touched = false;
+  if (next.revenueGrowthForward === null && forward.revenueGrowthForward !== null) {
+    next.revenueGrowthForward = forward.revenueGrowthForward;
+    touched = true;
+  }
+  if (next.earningsGrowthForward === null && forward.earningsGrowthForward !== null) {
+    next.earningsGrowthForward = forward.earningsGrowthForward;
+    touched = true;
+  }
+  if (next.ebitdaGrowthForward === null && forward.ebitdaGrowthForward !== null) {
+    next.ebitdaGrowthForward = forward.ebitdaGrowthForward;
+    touched = true;
+  }
+  return touched ? next : base;
 }
 
