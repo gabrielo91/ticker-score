@@ -20,6 +20,7 @@
  */
 import {
   DataAggregator,
+  FinnhubProvider,
   ProviderRegistry,
   YahooFinanceProvider,
 } from "@darkscore/data-providers";
@@ -64,6 +65,13 @@ export async function generateReport(
   const registry = new ProviderRegistry().register(
     new YahooFinanceProvider({ client }),
   );
+  // Finnhub is registered as a fallback (priority 1) when an API key is
+  // provided. Yahoo stays primary at priority 0; the aggregator only falls
+  // through to Finnhub on Yahoo failures (e.g. throttling).
+  const finnhubKey = process.env.FINNHUB_API_KEY;
+  if (typeof finnhubKey === "string" && finnhubKey.length > 0) {
+    registry.register(new FinnhubProvider({ apiKey: finnhubKey }));
+  }
   const aggregator = new DataAggregator(registry, cache);
 
   const [tickerRes, priceRes, finRes, metricsRes, quarterlyRes] =
