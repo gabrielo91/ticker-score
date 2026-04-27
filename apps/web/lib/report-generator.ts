@@ -14,7 +14,10 @@
  *   4. Derive `GrowthData` from quarterly results (the underlying providers
  *      do not expose a first-class growth endpoint on their free tiers).
  *   5. Run `EditorialStrategy` via `runScoring`.
- *   6. Assemble a typed `ReportData` and return `Result<ReportData, Error>`.
+ *   6. Cache-first call to the env-selected `NarrativeProvider` (Spec 002,
+ *      W4-4). Failure surfaces as `narrativeAvailable: false`; success
+ *      populates `report.narrative`.
+ *   7. Assemble a typed `ReportData` and return `Result<ReportData, Error>`.
  *
  * DB persistence is intentionally out of scope (W3-5 will add it behind the
  * same orchestrator).
@@ -28,6 +31,7 @@ import {
   TwelveDataProvider,
 } from "@darkscore/data-providers";
 import { getCacheRuntime } from "./cache-runtime";
+import { getNarrativeRuntime, runNarrative } from "./narrative-runtime";
 import {
   DEFAULT_PROVIDER_ID,
   isKnownProviderId,
@@ -163,6 +167,21 @@ export async function generateReport(
     return err(new Error(`Scoring failed: ${scoring.error.message}`));
   }
 
+  // Narrative enrichment (Spec 002, W4-4). Cache-first against the
+  // env-selected provider; any failure (no provider, transport, schema)
+  // surfaces as `narrativeAvailable: false` and the page renders the
+  // Spec-001 layout — never throws.
+  const { provider: narrativeProvider } = getNarrativeRuntime();
+  const narrativeOutcome = await runNarrative(narrativeProvider, cache, {
+    ticker: tickerInfo,
+    riskScore: scoring.data.breakdown.composite,
+    scoreBreakdown: scoring.data.breakdown,
+    financials,
+    keyMetrics,
+    quarterlyResults: quarterly,
+    priceHistory,
+  });
+
   const report: ReportData = {
     ticker: tickerInfo,
     priceChart: { points: priceHistory, annotations: [] },
@@ -184,8 +203,8 @@ export async function generateReport(
     dataAsOf: computedAt,
     notFinancialAdvice: true,
     fundamentalsAvailable: true,
-    narrative: null,
-    narrativeAvailable: false,
+    narrative: narrativeOutcome.narrative,
+    narrativeAvailable: narrativeOutcome.narrativeAvailable,
   };
 
   return ok(report);
