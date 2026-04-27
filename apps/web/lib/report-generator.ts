@@ -31,6 +31,7 @@ import {
   TwelveDataProvider,
 } from "@darkscore/data-providers";
 import { getCacheRuntime } from "./cache-runtime";
+import { mergeNarrativeIntoReport } from "./narrative-merge";
 import { getNarrativeRuntime, runNarrative } from "./narrative-runtime";
 import {
   DEFAULT_PROVIDER_ID,
@@ -207,7 +208,16 @@ export async function generateReport(
     narrativeAvailable: narrativeOutcome.narrativeAvailable,
   };
 
-  return ok(report);
+  // Narrative UI merge (Spec 002, W4-5). When a narrative is available we
+  // overlay its catalysts, risks, chart annotations, verdict prose, scenario
+  // price targets, and card subtitles onto the structured report. Headline
+  // and disclaimer are surfaced separately by the page (no Spec-001 slot).
+  const merged =
+    narrativeOutcome.narrativeAvailable && narrativeOutcome.narrative !== null
+      ? mergeNarrativeIntoReport(report, narrativeOutcome.narrative)
+      : report;
+
+  return ok(merged);
 }
 
 /**

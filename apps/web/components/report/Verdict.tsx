@@ -12,18 +12,40 @@ import type { Rating, RiskScore, Verdict as VerdictData } from "@darkscore/types
 interface VerdictProps {
   readonly verdict: VerdictData;
   readonly riskScore: RiskScore;
+  /**
+   * Optional narrative-derived headline (Spec 002, W4-5). Rendered above
+   * the rating bar when present; absent when no narrative is available so
+   * the Spec-001 layout is preserved.
+   */
+  readonly headline?: string;
+  /**
+   * Optional narrative disclaimer (Spec 002 prompt grounding rule #4 —
+   * mandatory on every narrative response). Rendered next to the verdict
+   * prose when present.
+   */
+  readonly disclaimer?: string;
 }
 
 function formatRating(rating: Rating): string {
   return rating.replace(/_/g, " ");
 }
 
-export function Verdict({ verdict, riskScore }: VerdictProps): JSX.Element {
+export function Verdict({
+  verdict,
+  riskScore,
+  headline,
+  disclaimer,
+}: VerdictProps): JSX.Element {
   return (
     <section className="rounded-xl border border-zinc-800 bg-[#11131a] p-6 mb-6">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-[#f0f0f0] mb-5">
         Bottom Line — Verdict
       </h2>
+      {headline !== undefined ? (
+        <p className="text-lg font-semibold text-[#f0f0f0] mb-4 leading-snug">
+          {headline}
+        </p>
+      ) : null}
       <div className="mb-5">
         <div className="flex justify-between text-[10px] uppercase tracking-widest text-[#8a8f98] mb-2">
           <span>Strong Sell</span>
@@ -50,6 +72,11 @@ export function Verdict({ verdict, riskScore }: VerdictProps): JSX.Element {
       <p className="text-sm text-[#8a8f98] leading-relaxed mb-4">
         {verdict.summary}
       </p>
+      {disclaimer !== undefined ? (
+        <p className="text-[11px] text-[#64748b] italic leading-relaxed mb-4">
+          {disclaimer}
+        </p>
+      ) : null}
       <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-800">
         <PriceTargetCell
           label="Bear"
