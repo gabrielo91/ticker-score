@@ -10,13 +10,12 @@
  *  3. writes the successful payload back to the cache.
  *
  * Cache keys follow the canonical `{provider}:{ticker}:{dataType}:{bucket}`
- * format (built by `@darkscore/cache`'s `buildCacheKey`). When a caller
- * pins the read to a specific provider via `providerName` (the UI dropdown
- * path) we use that provider's name in the key so switching sources
- * actually returns fresh data instead of the previous source's cached
- * payload. When no provider is named, the aggregator falls back to the
- * legacy `"aggregator"` tag for the priority-chain path so the cache
- * survives a registry reorder.
+ * format (built by `@darkscore/cache`'s `buildCacheKey`). When the consumer
+ * asks the aggregator without naming a provider, the literal string
+ * `"aggregator"` is used so a single cached payload survives a registry
+ * reorder. When the consumer names a provider (strict mode), that provider
+ * name is used in the key instead — otherwise switching the user-selected
+ * source would silently serve another provider's cached payload.
  */
 import type {
   DataProvider,
