@@ -49,3 +49,16 @@ export {
   type AlphaVantageProviderOptions,
 } from "./providers/alpha-vantage/index.js";
 
+export {
+  FinnhubProvider,
+  FINNHUB_DEFAULT_PRIORITY,
+  FINNHUB_PROVIDER_NAME,
+  createFinnhubProvider,
+  type FinnhubProviderOptions,
+} from "./providers/finnhub/index.js";
+
+export {
+  FinnhubClient,
+  type FinnhubClientOptions,
+} from "./providers/finnhub/client.js";
+
