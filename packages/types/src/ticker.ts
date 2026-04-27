@@ -9,7 +9,7 @@ export const TickerSymbolSchema = z
   .string()
   .min(1)
   .max(10)
-  .regex(/^[A-Z0-9.\-]+$/u, "Ticker symbols are uppercase A-Z, 0-9, '.' or '-'");
+  .regex(/^[A-Z0-9.-]+$/u, "Ticker symbols are uppercase A-Z, 0-9, '.' or '-'");
 
 export type TickerSymbol = z.infer<typeof TickerSymbolSchema>;
 

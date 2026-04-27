@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- CLI migration script logs to stdout/stderr */
 import "dotenv/config";
 
 import { drizzle } from "drizzle-orm/postgres-js";
