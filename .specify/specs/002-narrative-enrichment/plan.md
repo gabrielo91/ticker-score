@@ -3,8 +3,8 @@
 
 ## Current State
 
-**Status**: Wave 4-1 IN REVIEW. Skeleton package landed on `feat/w4-1-narrative-package`; PR open against `main`.
-**Next action**: After W4-1 merges, start W4-2 (OpenAI adapter) on a fresh branch.
+**Status**: Wave 4-1 COMPLETE (PR #30 merged to `main` as `bd32c95`). Skeleton package, types, content-hash cache key, mock provider, registry, and boundary-checker entry are live.
+**Next action**: W4-2 — OpenAI adapter (`gpt-4o-mini`, JSON-mode, T≤0.2). Branch from `main` as `feat/w4-2-openai-narrative`.
 **Handoff instruction**: Read this file, then [`spec.md`](./spec.md), then [`packages/narrative/CONSTITUTION.md`](../../../packages/narrative/CONSTITUTION.md) before touching code. Run `pnpm turbo validate && pnpm turbo test` to confirm a clean baseline.
 **Last updated**: 2026-04-27
 
@@ -14,7 +14,7 @@
 
 | Wave | Scope | Status |
 |------|-------|--------|
-| W4-1 | Narrative package skeleton: types, registry, content-hash cache key, mock provider, errors, tests, boundary-checker entry, package CONSTITUTION | 🔄 In review |
+| W4-1 | Narrative package skeleton: types, registry, content-hash cache key, mock provider, errors, tests, boundary-checker entry, package CONSTITUTION | ✅ Done (PR #30) |
 | W4-2 | OpenAI adapter (`gpt-4o-mini`, JSON-mode, T≤0.2), recorded-fixture integration test | ⏳ Next |
 | W4-3 | *(optional)* Anthropic adapter, parallel shape | ⏳ Stretch |
 | W4-4 | `apps/web` orchestration: cache-first call to active provider after scoring; `narrativeAvailable` flag wiring | ⏳ Pending W4-2 |
@@ -25,7 +25,7 @@
 
 ## Completed Work
 
-### Wave 4-1: Narrative Package Skeleton 🔄
+### Wave 4-1: Narrative Package Skeleton ✅
 
 | Item | Where |
 |------|-------|
