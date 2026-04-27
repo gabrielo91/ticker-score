@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-recorded-w4-2-aapl",
+  "object": "chat.completion",
+  "created": 1745798400,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"cardSubtitles\":{\"valuationPe\":\"Trades at a P/E of ~30 on TTM EPS of $6.50, a premium to the broader market.\",\"valuationEv\":\"EV/EBITDA of ~22 reflects rich expectations relative to historical norms.\",\"valuationRelative\":\"P/S of 7 and P/B of 50 mark a sustained premium versus consumer-electronics peers.\",\"healthBalance\":\"Cash of $60B against $110B total debt; debt-to-equity of 1.5 is elevated for the sector.\",\"healthCashFlow\":\"Operating cash flow of $120B (TTM) easily covers $20B in capex, leaving ~$100B FCF.\",\"healthProfitability\":\"Net margin of 25% and return on equity above 100% point to high capital efficiency.\",\"growthRevenue\":\"Q1 2026 revenue of $100B grew 5% year over year, a moderation from prior cycles.\",\"growthSegment\":null,\"growthEarnings\":\"Q1 2026 EPS of $1.60 with 30% operating margin extends the recent profitability trend.\"},\"chartAnnotations\":[{\"date\":\"2026-04-27\",\"label\":\"Last close $200\",\"kind\":\"event\"},{\"date\":\"2025-04-27\",\"label\":\"Prior-year base $180\",\"kind\":\"low\"}],\"catalysts\":[\"Operating cash flow of $120B (TTM) preserves capacity for buybacks and product investment.\",\"Net margin of 25% leaves ample room to absorb input cost pressure.\",\"52-week range of $150-$250 implies the current $200 print sits mid-band, leaving headroom to prior highs.\",\"Q1 2026 revenue growth of +5% YoY shows the top line still expanding off a high base.\"],\"risks\":[\"Debt-to-equity of 1.5 limits flexibility if rates stay elevated.\",\"P/E of ~30 leaves little room for multiple compression should growth slow further.\",\"Current ratio of 1.0 sits at the floor of comfortable short-term liquidity.\",\"5% YoY revenue growth marks a deceleration that the premium multiple may not tolerate.\"],\"priceTargets\":{\"bear\":170,\"base\":210,\"bull\":240},\"verdict\":{\"headline\":\"Premium-priced compounder with decelerating growth\",\"paragraph\":\"At a P/E near 30 and EV/EBITDA of 22, the market continues to reward Apple's cash-generation engine: $120B in operating cash flow comfortably funds $20B of capex and leaves ~$100B in free cash. Q1 2026 showed +5% revenue growth and a 30% operating margin, extending profitability while signalling a slower top-line cadence. With debt-to-equity at 1.5 and the share price mid-band of its 52-week range, valuation discipline is the operative variable; the composite score of 70 reflects that balance.\"},\"disclaimer\":\"This narrative is automatically generated from structured financial data and is for informational purposes only; it is not investment advice.\"}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1280,
+    "completion_tokens": 540,
+    "total_tokens": 1820
+  }
+}
+

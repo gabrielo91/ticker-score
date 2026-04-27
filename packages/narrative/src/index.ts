@@ -19,4 +19,11 @@ export {
   MockNarrativeProvider,
   type MockNarrativeProviderOptions,
 } from "./mock-provider.js";
+export {
+  OPENAI_DEFAULT_MODEL,
+  OPENAI_PROVIDER_NAME,
+  OpenAINarrativeProvider,
+  createOpenAINarrativeProvider,
+  type OpenAINarrativeProviderOptions,
+} from "./providers/openai/index.js";
 
