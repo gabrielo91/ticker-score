@@ -38,6 +38,7 @@ import {
   err,
   isErr,
   ok,
+  Rating,
   TickerSymbolSchema,
   type DataCard,
   type DataPoint,
@@ -49,6 +50,8 @@ import {
   type QuarterlyResult,
   type ReportData,
   type Result,
+  type RiskScore,
+  type ScoreBreakdown,
   type TickerInfo,
   type TickerSymbol,
 } from "@darkscore/types";
@@ -131,18 +134,26 @@ export async function generateReport(
     ]);
 
   if (isErr(tickerRes)) return tickerRes;
-  if (isErr(finRes)) return finRes;
-  if (isErr(metricsRes)) return metricsRes;
-  if (isErr(quarterlyRes)) return quarterlyRes;
-
   const tickerInfo = tickerRes.data;
+  const priceHistory: PricePoint[] = priceRes.ok ? priceRes.data : [];
+  const computedAt = new Date().toISOString();
+
+  // Fundamentals fetches are bundled: if any one fails (e.g. Twelve Data's
+  // Basic plan refuses `/statistics`, `/income_statement`, `/balance_sheet`
+  // with 403), we cannot honestly compute a score. Render a partial report
+  // with `fundamentalsAvailable: false` so the UI suppresses the score
+  // gauge, breakdown, and verdict instead of inventing a rating from zeros.
+  if (isErr(finRes) || isErr(metricsRes) || isErr(quarterlyRes)) {
+    return ok(
+      buildPartialReport(tickerInfo, priceHistory, computedAt),
+    );
+  }
+
   const financials = finRes.data;
   const keyMetrics = metricsRes.data;
   const quarterly = quarterlyRes.data;
-  const priceHistory: PricePoint[] = priceRes.ok ? priceRes.data : [];
 
   const growth = deriveGrowthData(quarterly);
-  const computedAt = new Date().toISOString();
 
   const scoring = runScoring(
     { metrics: keyMetrics, financials, growth, computedAt },
@@ -172,9 +183,48 @@ export async function generateReport(
     generatedAt: computedAt,
     dataAsOf: computedAt,
     notFinancialAdvice: true,
+    fundamentalsAvailable: true,
   };
 
   return ok(report);
+}
+
+/**
+ * Assemble a report shell when the provider cannot supply fundamentals. The
+ * UI gates the score gauge, score breakdown, and verdict on
+ * `fundamentalsAvailable`, so the stub values for those fields are never
+ * rendered — they exist only to satisfy the schema.
+ */
+function buildPartialReport(
+  tickerInfo: TickerInfo,
+  priceHistory: PricePoint[],
+  computedAt: string,
+): ReportData {
+  const keyMetrics = emptyKeyMetrics();
+  const financials = emptyFinancials();
+  const growth = emptyGrowth();
+  return {
+    ticker: tickerInfo,
+    priceChart: { points: priceHistory, annotations: [] },
+    kpiStrip: buildKpiStrip(tickerInfo, keyMetrics),
+    valuationCards: [],
+    financialHealthCards: [],
+    growthCards: [],
+    financials,
+    keyMetrics,
+    growth,
+    quarterlyResults: [],
+    scoreBreakdown: emptyScoreBreakdown(computedAt),
+    riskScore: emptyRiskScore(computedAt),
+    latestEarnings: buildLatestEarnings([]),
+    catalysts: [],
+    risks: [],
+    verdict: buildVerdict(tickerInfo),
+    generatedAt: computedAt,
+    dataAsOf: computedAt,
+    notFinancialAdvice: true,
+    fundamentalsAvailable: false,
+  };
 }
 
 function deriveGrowthData(quarters: ReadonlyArray<QuarterlyResult>): GrowthData {
@@ -321,5 +371,70 @@ function formatCompact(value: number): string {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function emptyKeyMetrics(): KeyMetrics {
+  return {
+    peRatioTTM: null,
+    peRatioForward: null,
+    priceToSales: null,
+    priceToBook: null,
+    evToEbitda: null,
+    evToRevenue: null,
+    pegRatio: null,
+    dividendYield: null,
+    payoutRatio: null,
+  };
+}
+
+function emptyFinancials(): Financials {
+  return {
+    revenueTTM: 0,
+    netIncomeTTM: 0,
+    epsTTM: 0,
+    cash: 0,
+    totalDebt: 0,
+    debtToEquity: null,
+    currentRatio: null,
+    operatingCashFlowTTM: 0,
+    freeCashFlowTTM: 0,
+    capexTTM: 0,
+    grossMargin: 0,
+    operatingMargin: 0,
+    netMargin: 0,
+    returnOnEquity: null,
+    returnOnAssets: null,
+    fiscalYear: new Date().getUTCFullYear(),
+  };
+}
+
+function emptyGrowth(): GrowthData {
+  return {
+    revenueGrowthYoY: 0,
+    revenueGrowthForward: null,
+    earningsGrowthYoY: null,
+    earningsGrowthForward: null,
+    ebitdaGrowthForward: null,
+    segments: [],
+  };
+}
+
+function emptyRiskScore(computedAt: string): RiskScore {
+  return {
+    composite: 0,
+    rating: Rating.HOLD,
+    ratingPosition: 0,
+    riskLabel: NOT_AVAILABLE,
+    strategy: "n/a",
+    strategyVersion: "n/a",
+    computedAt,
+  };
+}
+
+function emptyScoreBreakdown(computedAt: string): ScoreBreakdown {
+  return {
+    components: [],
+    composite: emptyRiskScore(computedAt),
+  };
 }
 
