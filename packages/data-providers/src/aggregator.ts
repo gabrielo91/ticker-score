@@ -10,10 +10,12 @@
  *  3. writes the successful payload back to the cache.
  *
  * Cache keys follow the canonical `{provider}:{ticker}:{dataType}:{bucket}`
- * format (built by `@darkscore/cache`'s `buildCacheKey`). The aggregator
- * uses the literal string `"aggregator"` as the provider segment so a
- * single cached payload survives a registry reorder — the consumer asked
- * the aggregator, not Yahoo specifically.
+ * format (built by `@darkscore/cache`'s `buildCacheKey`). When the consumer
+ * asks the aggregator without naming a provider, the literal string
+ * `"aggregator"` is used so a single cached payload survives a registry
+ * reorder. When the consumer names a provider (strict mode), that provider
+ * name is used in the key instead — otherwise switching the user-selected
+ * source would silently serve another provider's cached payload.
  */
 import type {
   DataProvider,
@@ -111,8 +113,9 @@ export class DataAggregator {
     options: DataAggregatorOptions | undefined,
     call: (provider: DataProvider) => Promise<Result<T>>,
   ): Promise<Result<T>> {
+    const providerName = options?.providerName ?? this.defaults.providerName;
     const key = buildCacheKey({
-      provider: AGGREGATOR_PROVIDER_TAG,
+      provider: providerName ?? AGGREGATOR_PROVIDER_TAG,
       ticker: symbol,
       dataType,
     });
@@ -123,7 +126,6 @@ export class DataAggregator {
       if (isOk(cached) && cached.data !== null) return ok(cached.data);
     }
 
-    const providerName = options?.providerName ?? this.defaults.providerName;
     const providers =
       providerName !== undefined
         ? this.resolveSingle(providerName)

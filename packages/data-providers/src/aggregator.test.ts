@@ -195,6 +195,47 @@ describe("DataAggregator", () => {
         expect(r.error.message).toMatch(/provider "ghost" is not registered/u);
       }
     });
+
+    it("scopes the cache key by providerName so two providers do not collide", async () => {
+      registry.register(fakeProvider("yahoo", 0, ok(SAMPLE_TICKER)));
+      registry.register(fakeProvider("finnhub", 1, ok(SAMPLE_TICKER)));
+      const aggregator = new DataAggregator(registry, cache);
+
+      await aggregator.getTickerInfo("AMZN", { providerName: "yahoo" });
+      await aggregator.getTickerInfo("AMZN", { providerName: "finnhub" });
+
+      const keys = [...backend.store.keys()];
+      expect(keys.length).toBe(2);
+      expect(keys.some((k) => k.startsWith("yahoo:AMZN:ticker-info:"))).toBe(true);
+      expect(keys.some((k) => k.startsWith("finnhub:AMZN:ticker-info:"))).toBe(true);
+    });
+
+    it("does NOT serve a previously-cached payload from a different provider", async () => {
+      const yahoo = fakeProvider("yahoo", 0, ok(SAMPLE_TICKER));
+      const finnhub = fakeProvider(
+        "finnhub",
+        1,
+        err(new Error("finnhub-down")),
+      );
+      registry.register(yahoo);
+      registry.register(finnhub);
+      const aggregator = new DataAggregator(registry, cache);
+
+      const first = await aggregator.getTickerInfo("AMZN", {
+        providerName: "yahoo",
+      });
+      expect(isOk(first)).toBe(true);
+      expect(yahoo.calls).toBe(1);
+
+      const second = await aggregator.getTickerInfo("AMZN", {
+        providerName: "finnhub",
+      });
+      expect(isErr(second)).toBe(true);
+      expect(finnhub.calls).toBe(1);
+      if (isErr(second)) {
+        expect(second.error.message).toMatch(/finnhub: finnhub-down/u);
+      }
+    });
   });
 });
 
