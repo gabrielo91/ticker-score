@@ -17,6 +17,7 @@ import {
 } from "./financials.js";
 import { NarrativeDataSchema } from "./narrative.js";
 import { RiskScoreSchema, ScoreBreakdownSchema } from "./score.js";
+import { SourceAttributionSchema } from "./source-attribution.js";
 import { PricePointSchema, TickerInfoSchema } from "./ticker.js";
 
 export const StatusColorSchema = z.enum(["green", "amber", "red", "blue"]);
@@ -126,6 +127,15 @@ export const ReportDataSchema = z.object({
    */
   narrative: NarrativeDataSchema.nullable(),
   narrativeAvailable: z.boolean(),
+  /**
+   * Per-method record of which provider served each `DataProvider` call
+   * (W5-1). `null` when the report is built from a single-provider path
+   * (no composite aggregator); a `SourceAttribution` map when produced by
+   * `CompositeAggregator`. Method keys mirror the `DataProvider` surface
+   * (`tickerInfo`, `priceHistory`, `financials`, `keyMetrics`,
+   * `quarterlyResults`).
+   */
+  sourceAttribution: SourceAttributionSchema.nullable(),
 });
 
 export type ReportData = z.infer<typeof ReportDataSchema>;

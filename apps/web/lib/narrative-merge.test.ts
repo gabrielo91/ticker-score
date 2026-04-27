@@ -62,6 +62,7 @@ function buildBaseReport(): ReportData {
     fundamentalsAvailable: true,
     narrative: null,
     narrativeAvailable: false,
+    sourceAttribution: null,
   };
 }
 

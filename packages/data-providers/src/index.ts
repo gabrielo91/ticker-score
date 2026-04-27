@@ -19,6 +19,14 @@ export {
   type DataAggregatorOptions,
 } from "./aggregator.js";
 
+export {
+  CompositeAggregator,
+  DEFAULT_COMPOSITE_CONFIG,
+  type CompositeConfig,
+  type CompositeAggregatorOptions,
+  type CompositeMethod,
+} from "./composite-aggregator.js";
+
 export { RateLimiter, DEFAULT_WINDOW_MS } from "./rate-limiter.js";
 
 export {
@@ -42,6 +50,12 @@ export {
   createAlphaVantageProvider,
   type AlphaVantageProviderOptions,
 } from "./providers/alpha-vantage/index.js";
+
+export {
+  AlphaVantageApiError,
+  AlphaVantageClient,
+  type AlphaVantageClientOptions,
+} from "./providers/alpha-vantage/client.js";
 
 export {
   FinnhubProvider,

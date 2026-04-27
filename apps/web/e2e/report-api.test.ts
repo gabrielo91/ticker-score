@@ -98,16 +98,12 @@ function isProviderRateLimited(error: string): boolean {
   return /429|rate limit|too many requests|exceeded the maximum/iu.test(error);
 }
 
-async function getReport(
-  ticker: string,
-  provider?: string,
-): Promise<ReportResponse> {
+async function getReport(ticker: string): Promise<ReportResponse> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const qs = provider !== undefined ? `?provider=${provider}` : "";
     const res = await fetch(
-      `${BASE_URL}/api/report/${encodeURIComponent(ticker)}${qs}`,
+      `${BASE_URL}/api/report/${encodeURIComponent(ticker)}`,
       { signal: controller.signal },
     );
     const json: unknown = await res.json();
@@ -164,33 +160,28 @@ describe("e2e: /api/report/[ticker]", () => {
   );
 
   it.skipIf(!serverReachable)(
-    "honors ?provider=twelvedata and returns AAPL from Twelve Data",
+    "ignores any ?provider= query param (W5-1: provider dropdown removed)",
     async (ctx) => {
-      const r = await getReport("AAPL", "twelvedata");
-      if (!r.ok) {
-        if (isProviderRateLimited(r.error)) {
-          console.warn(`[e2e] skipping — provider throttled CI: ${r.error}`);
-          ctx.skip();
-          return;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        const res = await fetch(
+          `${BASE_URL}/api/report/AAPL?provider=ghost`,
+          { signal: controller.signal },
+        );
+        const json = (await res.json()) as ReportResponse;
+        if (!json.ok) {
+          if (isProviderRateLimited(json.error)) {
+            console.warn(`[e2e] skipping — provider throttled CI: ${json.error}`);
+            ctx.skip();
+            return;
+          }
+          throw new Error(`expected ok, got error: ${json.error}`);
         }
-        throw new Error(`expected ok, got error: ${r.error}`);
-      }
-      expect(r.data.ticker.symbol).toBe("AAPL");
-      expect(r.data.ticker.currentPrice).toBeGreaterThan(0);
-    },
-  );
-
-  it.skipIf(!serverReachable)(
-    "returns 400 for an unknown provider id",
-    async () => {
-      const res = await fetch(
-        `${BASE_URL}/api/report/AAPL?provider=ghost`,
-      );
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as ReportResponse;
-      expect(json.ok).toBe(false);
-      if (!json.ok) {
-        expect(json.error.toLowerCase()).toContain("unknown data provider");
+        expect(res.status).toBe(200);
+        expect(json.data.ticker.symbol).toBe("AAPL");
+      } finally {
+        clearTimeout(timer);
       }
     },
   );

@@ -6,9 +6,11 @@
  * Flow (Constitution C2 + C5):
  *   1. Build a `CacheService` (Redis if `REDIS_URL` is set, otherwise a no-op
  *      backend so the orchestrator still works without infrastructure).
- *   2. Build a `ProviderRegistry` with the user-selected source (Twelve Data
- *      by default, optionally Finnhub when `FINNHUB_API_KEY` is configured)
- *      and a strict-mode `DataAggregator` over it (no silent fallback).
+ *   2. Build a `ProviderRegistry` with every provider whose API key is
+ *      configured (Twelve Data, Finnhub, Alpha Vantage) and a
+ *      `CompositeAggregator` over it. Each `DataProvider` method has its
+ *      own ordered fallback chain (W5-1) — the per-method outcomes are
+ *      recorded in a `SourceAttribution` map exposed on the report.
  *   3. Fetch ticker info, price history, financials, key metrics, quarterly
  *      results in parallel — every call returns `Result`, never throws.
  *   4. Derive `GrowthData` from quarterly results (the underlying providers
@@ -23,21 +25,16 @@
  * same orchestrator).
  */
 import {
-  DataAggregator,
-  FINNHUB_PROVIDER_NAME,
+  AlphaVantageProvider,
+  CompositeAggregator,
+  DEFAULT_COMPOSITE_CONFIG,
   FinnhubProvider,
   ProviderRegistry,
-  TWELVE_DATA_PROVIDER_NAME,
   TwelveDataProvider,
 } from "@darkscore/data-providers";
 import { getCacheRuntime } from "./cache-runtime";
 import { mergeNarrativeIntoReport } from "./narrative-merge";
 import { getNarrativeRuntime, runNarrative } from "./narrative-runtime";
-import {
-  DEFAULT_PROVIDER_ID,
-  isKnownProviderId,
-  type ProviderId,
-} from "./providers";
 import { EditorialStrategy, runScoring } from "@darkscore/scoring-engine";
 import {
   err,
@@ -59,6 +56,7 @@ import {
   type Result,
   type RiskScore,
   type ScoreBreakdown,
+  type SourceAttribution,
   type TickerInfo,
   type TickerSymbol,
 } from "@darkscore/types";
@@ -67,19 +65,16 @@ import { NOT_AVAILABLE } from "./format";
 const PRICE_HISTORY_MONTHS = 12;
 const QUARTERLY_HISTORY_QUARTERS = 8;
 
-export interface GenerateReportOptions {
-  /**
-   * Data source the user picked from the UI. When omitted, defaults to
-   * `DEFAULT_PROVIDER_ID` (Twelve Data). The aggregator routes the read to
-   * the named provider only — there is **no silent fallback** (the user
-   * asked for a specific source, so a failure must surface as an error).
-   */
-  readonly provider?: string;
-}
+/**
+ * Reserved for future per-request configuration. The provider dropdown
+ * was removed in W5-1; reports now always run through the composite
+ * aggregator with the spec-default routing.
+ */
+export type GenerateReportOptions = Record<string, never>;
 
 export async function generateReport(
   ticker: string,
-  options: GenerateReportOptions = {},
+  _options: GenerateReportOptions = {},
 ): Promise<Result<ReportData, Error>> {
   const parsed = TickerSymbolSchema.safeParse(ticker.toUpperCase());
   if (!parsed.success) {
@@ -87,49 +82,36 @@ export async function generateReport(
   }
   const symbol: TickerSymbol = parsed.data;
 
-  const requested = options.provider ?? DEFAULT_PROVIDER_ID;
-  if (!isKnownProviderId(requested)) {
-    return err(new Error(`Unknown data provider "${requested}"`));
-  }
-  const providerId: ProviderId = requested;
-
   const { cache } = getCacheRuntime();
   const registry = new ProviderRegistry();
 
-  // Twelve Data is registered when an API key is provided (default source).
+  // Each provider is registered only when its API key is configured —
+  // missing keys silently drop that source from the routing chain so the
+  // composite tries the next fallback.
   const twelveDataKey = process.env.TWELVEDATA_API_KEY;
-  const twelveDataAvailable =
-    typeof twelveDataKey === "string" && twelveDataKey.length > 0;
-  if (twelveDataAvailable) {
-    registry.register(new TwelveDataProvider({ apiKey: twelveDataKey as string }));
+  if (typeof twelveDataKey === "string" && twelveDataKey.length > 0) {
+    registry.register(new TwelveDataProvider({ apiKey: twelveDataKey }));
   }
-  if (providerId === TWELVE_DATA_PROVIDER_NAME && !twelveDataAvailable) {
-    return err(
-      new Error(
-        `Provider "${TWELVE_DATA_PROVIDER_NAME}" is not available (TWELVEDATA_API_KEY is not configured)`,
-      ),
-    );
-  }
-
-  // Finnhub is registered when an API key is provided. With per-request
-  // provider selection, it is an opt-in source the user can pick from the
-  // dropdown — never a silent fallback.
   const finnhubKey = process.env.FINNHUB_API_KEY;
-  const finnhubAvailable =
-    typeof finnhubKey === "string" && finnhubKey.length > 0;
-  if (finnhubAvailable) {
-    registry.register(new FinnhubProvider({ apiKey: finnhubKey as string }));
+  if (typeof finnhubKey === "string" && finnhubKey.length > 0) {
+    registry.register(new FinnhubProvider({ apiKey: finnhubKey }));
   }
-  if (providerId === FINNHUB_PROVIDER_NAME && !finnhubAvailable) {
+  const alphaVantageKey = process.env.ALPHAVANTAGE_API_KEY;
+  if (typeof alphaVantageKey === "string" && alphaVantageKey.length > 0) {
+    registry.register(new AlphaVantageProvider({ apiKey: alphaVantageKey }));
+  }
+  if (registry.size() === 0) {
     return err(
       new Error(
-        `Provider "${FINNHUB_PROVIDER_NAME}" is not available (FINNHUB_API_KEY is not configured)`,
+        "No data providers are configured. Set at least one of TWELVEDATA_API_KEY, FINNHUB_API_KEY, or ALPHAVANTAGE_API_KEY.",
       ),
     );
   }
-  const aggregator = new DataAggregator(registry, cache, {
-    providerName: providerId,
-  });
+  const aggregator = new CompositeAggregator(
+    registry,
+    cache,
+    DEFAULT_COMPOSITE_CONFIG,
+  );
 
   const [tickerRes, priceRes, finRes, metricsRes, quarterlyRes] =
     await Promise.all([
@@ -144,6 +126,7 @@ export async function generateReport(
   const tickerInfo = tickerRes.data;
   const priceHistory: PricePoint[] = priceRes.ok ? priceRes.data : [];
   const computedAt = new Date().toISOString();
+  const sourceAttribution: SourceAttribution = aggregator.getSourceAttribution();
 
   // Fundamentals fetches are bundled: if any one fails (e.g. Twelve Data's
   // Basic plan refuses `/statistics`, `/income_statement`, `/balance_sheet`
@@ -152,7 +135,7 @@ export async function generateReport(
   // gauge, breakdown, and verdict instead of inventing a rating from zeros.
   if (isErr(finRes) || isErr(metricsRes) || isErr(quarterlyRes)) {
     return ok(
-      buildPartialReport(tickerInfo, priceHistory, computedAt),
+      buildPartialReport(tickerInfo, priceHistory, computedAt, sourceAttribution),
     );
   }
 
@@ -215,6 +198,7 @@ export async function generateReport(
     fundamentalsAvailable: true,
     narrative: narrativeOutcome.narrative,
     narrativeAvailable: narrativeOutcome.narrativeAvailable,
+    sourceAttribution,
   };
 
   // Narrative UI merge (Spec 002, W4-5). When a narrative is available we
@@ -239,6 +223,7 @@ function buildPartialReport(
   tickerInfo: TickerInfo,
   priceHistory: PricePoint[],
   computedAt: string,
+  sourceAttribution: SourceAttribution,
 ): ReportData {
   const keyMetrics = emptyKeyMetrics();
   const financials = emptyFinancials();
@@ -266,6 +251,7 @@ function buildPartialReport(
     fundamentalsAvailable: false,
     narrative: null,
     narrativeAvailable: false,
+    sourceAttribution,
   };
 }
 
