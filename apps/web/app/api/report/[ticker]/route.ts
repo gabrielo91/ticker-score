@@ -5,8 +5,8 @@
  * traces — Constitution C5.
  *
  * Accepts an optional `?provider=<id>` query param that selects the data
- * source (Yahoo, Finnhub, …). Unknown providers and bad ticker shapes
- * return 400; provider runtime failures return 500.
+ * source (Twelve Data, Finnhub, …). Unknown providers and bad ticker
+ * shapes return 400; provider runtime failures return 500.
  */
 import { NextResponse } from "next/server";
 import { generateReport } from "@/lib/report-generator";

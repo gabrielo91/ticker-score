@@ -6,26 +6,28 @@
  * Flow (Constitution C2 + C5):
  *   1. Build a `CacheService` (Redis if `REDIS_URL` is set, otherwise a no-op
  *      backend so the orchestrator still works without infrastructure).
- *   2. Build a `ProviderRegistry` with `YahooFinanceProvider` and a
- *      `DataAggregator` over it.
+ *   2. Build a `ProviderRegistry` with the user-selected source (Twelve Data
+ *      by default, optionally Finnhub when `FINNHUB_API_KEY` is configured)
+ *      and a strict-mode `DataAggregator` over it (no silent fallback).
  *   3. Fetch ticker info, price history, financials, key metrics, quarterly
  *      results in parallel — every call returns `Result`, never throws.
- *   4. Derive `GrowthData` from quarterly results (Yahoo does not expose a
- *      first-class growth endpoint).
+ *   4. Derive `GrowthData` from quarterly results (the underlying providers
+ *      do not expose a first-class growth endpoint on their free tiers).
  *   5. Run `EditorialStrategy` via `runScoring`.
  *   6. Assemble a typed `ReportData` and return `Result<ReportData, Error>`.
  *
- * DB persistence is intentionally out of scope for W3-1 (no Postgres
- * required for local dev). W3-5 will add it behind the same orchestrator.
+ * DB persistence is intentionally out of scope (W3-5 will add it behind the
+ * same orchestrator).
  */
 import {
   DataAggregator,
   FINNHUB_PROVIDER_NAME,
   FinnhubProvider,
   ProviderRegistry,
-  YahooFinanceProvider,
+  TWELVE_DATA_PROVIDER_NAME,
+  TwelveDataProvider,
 } from "@darkscore/data-providers";
-import { getYahooRuntime } from "./yahoo-singleton";
+import { getCacheRuntime } from "./cache-runtime";
 import {
   DEFAULT_PROVIDER_ID,
   isKnownProviderId,
@@ -36,6 +38,7 @@ import {
   err,
   isErr,
   ok,
+  Rating,
   TickerSymbolSchema,
   type DataCard,
   type DataPoint,
@@ -47,6 +50,8 @@ import {
   type QuarterlyResult,
   type ReportData,
   type Result,
+  type RiskScore,
+  type ScoreBreakdown,
   type TickerInfo,
   type TickerSymbol,
 } from "@darkscore/types";
@@ -58,9 +63,9 @@ const QUARTERLY_HISTORY_QUARTERS = 8;
 export interface GenerateReportOptions {
   /**
    * Data source the user picked from the UI. When omitted, defaults to
-   * `DEFAULT_PROVIDER_ID` (Yahoo). The aggregator routes the read to the
-   * named provider only — there is **no silent fallback** (the user asked
-   * for a specific source, so a failure must surface as an error).
+   * `DEFAULT_PROVIDER_ID` (Twelve Data). The aggregator routes the read to
+   * the named provider only — there is **no silent fallback** (the user
+   * asked for a specific source, so a failure must surface as an error).
    */
   readonly provider?: string;
 }
@@ -81,17 +86,27 @@ export async function generateReport(
   }
   const providerId: ProviderId = requested;
 
-  // The Yahoo client and its `SessionStore` are kept on a process-wide
-  // singleton so the cookie/crumb bootstrap is paid at most once per
-  // process (or once globally when Redis is configured) — see
-  // `yahoo-singleton.ts` for rationale.
-  const { cache, client } = getYahooRuntime();
-  const registry = new ProviderRegistry().register(
-    new YahooFinanceProvider({ client }),
-  );
+  const { cache } = getCacheRuntime();
+  const registry = new ProviderRegistry();
+
+  // Twelve Data is registered when an API key is provided (default source).
+  const twelveDataKey = process.env.TWELVEDATA_API_KEY;
+  const twelveDataAvailable =
+    typeof twelveDataKey === "string" && twelveDataKey.length > 0;
+  if (twelveDataAvailable) {
+    registry.register(new TwelveDataProvider({ apiKey: twelveDataKey as string }));
+  }
+  if (providerId === TWELVE_DATA_PROVIDER_NAME && !twelveDataAvailable) {
+    return err(
+      new Error(
+        `Provider "${TWELVE_DATA_PROVIDER_NAME}" is not available (TWELVEDATA_API_KEY is not configured)`,
+      ),
+    );
+  }
+
   // Finnhub is registered when an API key is provided. With per-request
-  // provider selection, it is no longer a fallback — it is an opt-in source
-  // the user can pick from the dropdown.
+  // provider selection, it is an opt-in source the user can pick from the
+  // dropdown — never a silent fallback.
   const finnhubKey = process.env.FINNHUB_API_KEY;
   const finnhubAvailable =
     typeof finnhubKey === "string" && finnhubKey.length > 0;
@@ -119,18 +134,26 @@ export async function generateReport(
     ]);
 
   if (isErr(tickerRes)) return tickerRes;
-  if (isErr(finRes)) return finRes;
-  if (isErr(metricsRes)) return metricsRes;
-  if (isErr(quarterlyRes)) return quarterlyRes;
-
   const tickerInfo = tickerRes.data;
+  const priceHistory: PricePoint[] = priceRes.ok ? priceRes.data : [];
+  const computedAt = new Date().toISOString();
+
+  // Fundamentals fetches are bundled: if any one fails (e.g. Twelve Data's
+  // Basic plan refuses `/statistics`, `/income_statement`, `/balance_sheet`
+  // with 403), we cannot honestly compute a score. Render a partial report
+  // with `fundamentalsAvailable: false` so the UI suppresses the score
+  // gauge, breakdown, and verdict instead of inventing a rating from zeros.
+  if (isErr(finRes) || isErr(metricsRes) || isErr(quarterlyRes)) {
+    return ok(
+      buildPartialReport(tickerInfo, priceHistory, computedAt),
+    );
+  }
+
   const financials = finRes.data;
   const keyMetrics = metricsRes.data;
   const quarterly = quarterlyRes.data;
-  const priceHistory: PricePoint[] = priceRes.ok ? priceRes.data : [];
 
   const growth = deriveGrowthData(quarterly);
-  const computedAt = new Date().toISOString();
 
   const scoring = runScoring(
     { metrics: keyMetrics, financials, growth, computedAt },
@@ -160,9 +183,48 @@ export async function generateReport(
     generatedAt: computedAt,
     dataAsOf: computedAt,
     notFinancialAdvice: true,
+    fundamentalsAvailable: true,
   };
 
   return ok(report);
+}
+
+/**
+ * Assemble a report shell when the provider cannot supply fundamentals. The
+ * UI gates the score gauge, score breakdown, and verdict on
+ * `fundamentalsAvailable`, so the stub values for those fields are never
+ * rendered — they exist only to satisfy the schema.
+ */
+function buildPartialReport(
+  tickerInfo: TickerInfo,
+  priceHistory: PricePoint[],
+  computedAt: string,
+): ReportData {
+  const keyMetrics = emptyKeyMetrics();
+  const financials = emptyFinancials();
+  const growth = emptyGrowth();
+  return {
+    ticker: tickerInfo,
+    priceChart: { points: priceHistory, annotations: [] },
+    kpiStrip: buildKpiStrip(tickerInfo, keyMetrics),
+    valuationCards: [],
+    financialHealthCards: [],
+    growthCards: [],
+    financials,
+    keyMetrics,
+    growth,
+    quarterlyResults: [],
+    scoreBreakdown: emptyScoreBreakdown(computedAt),
+    riskScore: emptyRiskScore(computedAt),
+    latestEarnings: buildLatestEarnings([]),
+    catalysts: [],
+    risks: [],
+    verdict: buildVerdict(tickerInfo),
+    generatedAt: computedAt,
+    dataAsOf: computedAt,
+    notFinancialAdvice: true,
+    fundamentalsAvailable: false,
+  };
 }
 
 function deriveGrowthData(quarters: ReadonlyArray<QuarterlyResult>): GrowthData {
@@ -309,5 +371,70 @@ function formatCompact(value: number): string {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function emptyKeyMetrics(): KeyMetrics {
+  return {
+    peRatioTTM: null,
+    peRatioForward: null,
+    priceToSales: null,
+    priceToBook: null,
+    evToEbitda: null,
+    evToRevenue: null,
+    pegRatio: null,
+    dividendYield: null,
+    payoutRatio: null,
+  };
+}
+
+function emptyFinancials(): Financials {
+  return {
+    revenueTTM: 0,
+    netIncomeTTM: 0,
+    epsTTM: 0,
+    cash: 0,
+    totalDebt: 0,
+    debtToEquity: null,
+    currentRatio: null,
+    operatingCashFlowTTM: 0,
+    freeCashFlowTTM: 0,
+    capexTTM: 0,
+    grossMargin: 0,
+    operatingMargin: 0,
+    netMargin: 0,
+    returnOnEquity: null,
+    returnOnAssets: null,
+    fiscalYear: new Date().getUTCFullYear(),
+  };
+}
+
+function emptyGrowth(): GrowthData {
+  return {
+    revenueGrowthYoY: 0,
+    revenueGrowthForward: null,
+    earningsGrowthYoY: null,
+    earningsGrowthForward: null,
+    ebitdaGrowthForward: null,
+    segments: [],
+  };
+}
+
+function emptyRiskScore(computedAt: string): RiskScore {
+  return {
+    composite: 0,
+    rating: Rating.HOLD,
+    ratingPosition: 0,
+    riskLabel: NOT_AVAILABLE,
+    strategy: "n/a",
+    strategyVersion: "n/a",
+    computedAt,
+  };
+}
+
+function emptyScoreBreakdown(computedAt: string): ScoreBreakdown {
+  return {
+    components: [],
+    composite: emptyRiskScore(computedAt),
+  };
 }
 

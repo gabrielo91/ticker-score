@@ -6,12 +6,11 @@
  * Conventions handled here:
  *  - Finnhub returns `marketCapitalization` in **millions** of currency
  *    units; we multiply by 1e6 to match the `TickerInfo.marketCap` contract
- *    (raw currency units, like Yahoo).
+ *    (raw currency units).
  *  - Finnhub margins are already **percent values** (e.g. 27.3 means 27.3%);
  *    `Financials` stores fractions, so we divide by 100.
  *  - Finnhub's `dp` (day percent change) is also already a percent; we
- *    convert to the fraction shape `TickerInfo.priceChangePercent` uses
- *    (consistent with Yahoo's `regularMarketChangePercent`).
+ *    convert to the fraction shape `TickerInfo.priceChangePercent` uses.
  *  - Quarter labels follow `Q{n} {year}`; if Finnhub returns `quarter:0`
  *    (annual filing slipping in) we skip it.
  */

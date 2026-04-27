@@ -108,6 +108,14 @@ export const ReportDataSchema = z.object({
   generatedAt: z.string().min(1),
   dataAsOf: z.string().min(1),
   notFinancialAdvice: z.boolean(),
+  /**
+   * `true` when the provider supplied financials, key metrics, and
+   * quarterly results — i.e. the report can be scored. `false` when those
+   * endpoints are gated or refused (e.g. Twelve Data Basic plan); the UI
+   * suppresses the score gauge, score breakdown, and verdict so the user
+   * isn't shown a misleading rating computed from missing data.
+   */
+  fundamentalsAvailable: z.boolean(),
 });
 
 export type ReportData = z.infer<typeof ReportDataSchema>;

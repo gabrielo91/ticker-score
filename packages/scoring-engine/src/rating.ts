@@ -38,10 +38,22 @@ export function determineRiskLabel(
 }
 
 /**
- * Position of the composite risk on the 0-100 axis, clamped. Useful for
- * gauge rendering (the report's risk dial).
+ * Position of the composite on the **rating axis** (0 = far-left "Strong
+ * Sell", 100 = far-right "Strong Buy"), clamped. Because `composite` is a
+ * RISK score where higher = worse, the rating-axis position is its inverse:
+ * a high-risk company sits on the "Strong Sell" end of the bar.
+ *
+ * Used by the report's verdict rating bar to draw the marker. The risk
+ * gauge itself uses `composite` directly because its color zones are
+ * already aligned to the risk axis.
  */
 export function ratingPosition(compositeRisk: number): number {
+  if (compositeRisk < 0) return 100;
+  if (compositeRisk > 100) return 0;
+  return 100 - compositeRisk;
+}
+
+function clampRisk(compositeRisk: number): number {
   if (compositeRisk < 0) return 0;
   if (compositeRisk > 100) return 100;
   return compositeRisk;
@@ -54,7 +66,7 @@ function resolveBreakpoint(
   if (breakpoints.length === 0) {
     throw new Error("rating: at least one breakpoint required");
   }
-  const clamped = ratingPosition(compositeRisk);
+  const clamped = clampRisk(compositeRisk);
   for (const bp of breakpoints) {
     if (clamped <= bp.maxRisk) return bp;
   }

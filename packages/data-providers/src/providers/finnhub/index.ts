@@ -5,7 +5,7 @@
  *
  * Constitution alignment:
  *  - C1: implements the cross-provider `DataProvider` interface so the
- *    aggregator can fall back to it when Yahoo fails.
+ *    aggregator can route to it when the user picks Finnhub from the UI.
  *  - C3: every raw response is validated through a Zod schema before any
  *    field is read.
  *  - C5: every public method returns `Result<T>` — internal failures
@@ -134,8 +134,9 @@ export class FinnhubProvider implements DataProvider {
 
   /**
    * Finnhub's `/stock/candle` endpoint is premium-only. Returning `err`
-   * lets the `DataAggregator` fall back to a provider that still serves
-   * historical prices (Yahoo's chart endpoint).
+   * surfaces the limitation to the user so they can pick a provider that
+   * still serves historical prices on its free tier (e.g. Twelve Data
+   * `/time_series`).
    */
   getPriceHistory(
     _symbol: TickerSymbol,

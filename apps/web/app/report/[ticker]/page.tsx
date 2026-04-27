@@ -62,6 +62,7 @@ function ReportView({
   provider: string;
 }): JSX.Element {
   const latestQuarter = report.quarterlyResults[0];
+  const fundamentalsAvailable = report.fundamentalsAvailable;
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-8">
       <div className="max-w-[1080px] mx-auto space-y-6">
@@ -71,48 +72,63 @@ function ReportView({
           <HowItWorks />
           <TickerBar ticker={report.ticker} />
           <CompanyAbout ticker={report.ticker} />
-          <KPIStrip
-            keyMetrics={report.keyMetrics}
-            financials={report.financials}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-1">
-              <RiskGauge
-                score={report.riskScore.composite}
-                rating={report.riskScore.rating}
-              />
+          {fundamentalsAvailable ? (
+            <KPIStrip
+              keyMetrics={report.keyMetrics}
+              financials={report.financials}
+            />
+          ) : null}
+          {fundamentalsAvailable ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-1">
+                <RiskGauge
+                  score={report.riskScore.composite}
+                  rating={report.riskScore.rating}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <PriceChart chart={report.priceChart} />
+              </div>
             </div>
-            <div className="md:col-span-2">
+          ) : (
+            <>
+              <FundamentalsUnavailableNotice provider={provider} />
               <PriceChart chart={report.priceChart} />
-            </div>
-          </div>
-          <MetricCards title="Valuation" cards={report.valuationCards} />
-          <MetricCards
-            title="Financial Health"
-            cards={report.financialHealthCards}
-          />
-          <MetricCards title="Growth" cards={report.growthCards} />
-          <ScoreBreakdown breakdown={report.scoreBreakdown} />
+            </>
+          )}
+          {fundamentalsAvailable ? (
+            <>
+              <MetricCards title="Valuation" cards={report.valuationCards} />
+              <MetricCards
+                title="Financial Health"
+                cards={report.financialHealthCards}
+              />
+              <MetricCards title="Growth" cards={report.growthCards} />
+              <ScoreBreakdown breakdown={report.scoreBreakdown} />
+            </>
+          ) : null}
         </section>
 
         {/* PAGE 2 — Deep Dive & Verdict */}
-        <section
-          className="page page-break space-y-6"
-          aria-label="Deep dive and verdict"
-        >
-          <QuarterlyTable quarters={report.quarterlyResults} />
-          {latestQuarter !== undefined ? (
-            <EarningsUpdate latestQuarter={latestQuarter} />
-          ) : null}
-          <CatalystsRisks
-            catalysts={report.catalysts}
-            risks={report.risks}
-          />
-          <Verdict
-            verdict={report.verdict}
-            riskScore={report.riskScore}
-          />
-        </section>
+        {fundamentalsAvailable ? (
+          <section
+            className="page page-break space-y-6"
+            aria-label="Deep dive and verdict"
+          >
+            <QuarterlyTable quarters={report.quarterlyResults} />
+            {latestQuarter !== undefined ? (
+              <EarningsUpdate latestQuarter={latestQuarter} />
+            ) : null}
+            <CatalystsRisks
+              catalysts={report.catalysts}
+              risks={report.risks}
+            />
+            <Verdict
+              verdict={report.verdict}
+              riskScore={report.riskScore}
+            />
+          </section>
+        ) : null}
 
         <footer className="pt-6 border-t border-darkscore-border text-xs text-text-muted">
           Not financial advice. Generated{" "}
@@ -123,6 +139,33 @@ function ReportView({
 
       <ClipboardExport reportData={report} />
     </main>
+  );
+}
+
+function FundamentalsUnavailableNotice({
+  provider,
+}: {
+  provider: string;
+}): JSX.Element {
+  return (
+    <div
+      role="status"
+      className="rounded-card border border-accent-amber/40 bg-darkscore-card p-4 text-sm text-text-primary"
+    >
+      <p className="font-semibold text-accent-amber mb-1">
+        Score unavailable for this ticker
+      </p>
+      <p className="text-text-muted">
+        The current data source (
+        <code className="font-mono text-accent-amber">{provider}</code>) did not
+        return fundamentals (income statement, balance sheet, or key metrics)
+        for this symbol — usually because the endpoint is restricted on the
+        free tier. The price chart still reflects live market data, but the
+        risk gauge, score breakdown, and verdict are hidden so we don&apos;t
+        publish a rating computed from missing inputs. Try a different data
+        source from the selector above.
+      </p>
+    </div>
   );
 }
 

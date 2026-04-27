@@ -19,27 +19,21 @@ export {
   type DataAggregatorOptions,
 } from "./aggregator.js";
 
-export {
-  YahooFinanceProvider,
-  YAHOO_DEFAULT_PRIORITY,
-  YAHOO_PROVIDER_NAME,
-  createYahooProvider,
-  type YahooFinanceProviderOptions,
-} from "./providers/yahoo/index.js";
+export { RateLimiter, DEFAULT_WINDOW_MS } from "./rate-limiter.js";
 
 export {
-  YahooClient,
-  RateLimiter,
-  type YahooClientOptions,
-} from "./providers/yahoo/client.js";
+  TwelveDataProvider,
+  TWELVE_DATA_DEFAULT_PRIORITY,
+  TWELVE_DATA_PROVIDER_NAME,
+  createTwelveDataProvider,
+  type TwelveDataProviderOptions,
+} from "./providers/twelve-data/index.js";
 
 export {
-  CachedSessionStore,
-  InMemorySessionStore,
-  DEFAULT_SESSION_TTL_SECONDS,
-  type SessionStore,
-  type YahooSession,
-} from "./providers/yahoo/session-store.js";
+  TwelveDataApiError,
+  TwelveDataClient,
+  type TwelveDataClientOptions,
+} from "./providers/twelve-data/client.js";
 
 export {
   AlphaVantageProvider,

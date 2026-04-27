@@ -45,10 +45,15 @@ describe("determineRiskLabel", () => {
 });
 
 describe("ratingPosition", () => {
-  it("clamps to 0-100", () => {
-    expect(ratingPosition(-10)).toBe(0);
-    expect(ratingPosition(110)).toBe(100);
-    expect(ratingPosition(42)).toBe(42);
+  it("returns the rating-axis position (inverse of risk)", () => {
+    expect(ratingPosition(0)).toBe(100);
+    expect(ratingPosition(100)).toBe(0);
+    expect(ratingPosition(42)).toBe(58);
+  });
+
+  it("clamps out-of-range risk before inverting", () => {
+    expect(ratingPosition(-10)).toBe(100);
+    expect(ratingPosition(110)).toBe(0);
   });
 });
 

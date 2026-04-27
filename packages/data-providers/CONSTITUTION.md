@@ -2,7 +2,7 @@
 
 # `@darkscore/data-providers` — Constitution
 
-**Purpose:** Adapters that fetch market data from external providers (Yahoo, etc.), validate responses, and surface a uniform interface to the rest of the system (C1, C2).
+**Purpose:** Adapters that fetch market data from external providers (Twelve Data, Finnhub, etc.), validate responses, and surface a uniform interface to the rest of the system (C1, C2).
 
 ## Applicable rules
 C1 (Adapter Pattern), C2 (Cache-First), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Result types), C7 (Spec-Driven), C10 (Tests).

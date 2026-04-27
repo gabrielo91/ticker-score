@@ -52,8 +52,8 @@ export function HowItWorks(): JSX.Element {
           <p>
             Pick the source from the{" "}
             <strong className="text-[#f0f0f0]">Data source</strong> dropdown
-            above. <strong className="text-[#f0f0f0]">Yahoo Finance</strong>{" "}
-            (default) covers quotes, fundamentals and price history.{" "}
+            above. <strong className="text-[#f0f0f0]">Twelve Data</strong>{" "}
+            (default) covers quotes, fundamentals and daily price history.{" "}
             <strong className="text-[#f0f0f0]">Finnhub</strong> is an
             alternative for fundamentals; its free tier doesn&apos;t expose
             historical candles, so the chart may be empty when Finnhub is

@@ -1,7 +1,7 @@
 /**
  * Zod schemas for the Finnhub free-tier endpoints we adapt. Finnhub returns
- * tight, well-typed JSON (unlike Yahoo's `{raw,fmt}` envelopes), so the
- * schemas mostly mirror the wire shape directly. Optional fields stay
+ * tight, well-typed JSON, so the schemas mostly mirror the wire shape
+ * directly. Optional fields stay
  * optional rather than nullable — Finnhub omits keys instead of nulling
  * them — and `.passthrough()` is applied so future field additions do not
  * break the adapter (Constitution C3 + package CONSTITUTION).

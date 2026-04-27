@@ -28,12 +28,12 @@ export interface ProviderOption {
 }
 
 export const PROVIDER_OPTIONS: ReadonlyArray<ProviderOption> = [
-  { id: "yahoo", label: "Yahoo Finance", requiresApiKey: false },
+  { id: "twelvedata", label: "Twelve Data", requiresApiKey: true },
   { id: "finnhub", label: "Finnhub", requiresApiKey: true },
 ];
 
 /** Default source when no `?provider=` query param is supplied. */
-export const DEFAULT_PROVIDER_ID = "yahoo";
+export const DEFAULT_PROVIDER_ID = "twelvedata";
 
 export type ProviderId = (typeof PROVIDER_OPTIONS)[number]["id"];
 

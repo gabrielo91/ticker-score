@@ -75,7 +75,7 @@ describe("runScoring + EditorialStrategy", () => {
     const composite = result.data.breakdown.composite;
     expect([Rating.BUY, Rating.HOLD]).toContain(composite.rating);
     expect(composite.riskLabel).toMatch(/Moderate/);
-    expect(composite.ratingPosition).toBe(composite.composite);
+    expect(composite.ratingPosition).toBe(100 - composite.composite);
   });
 
   it("is deterministic — same inputs ⇒ same outputs", () => {

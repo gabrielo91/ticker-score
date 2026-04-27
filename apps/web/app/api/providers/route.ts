@@ -1,8 +1,9 @@
 /**
  * `GET /api/providers` — returns the list of data sources the dropdown
  * should render. Sources whose runtime credentials are not configured
- * (e.g. Finnhub without `FINNHUB_API_KEY`) are filtered out so the user
- * cannot select an option that would always 500.
+ * (e.g. Twelve Data without `TWELVEDATA_API_KEY`, Finnhub without
+ * `FINNHUB_API_KEY`) are filtered out so the user cannot select an option
+ * that would always 500.
  *
  * Shape:
  *   { ok: true, data: { providers: ProviderOption[], default: string } }
@@ -16,9 +17,16 @@ import {
   PROVIDER_OPTIONS,
   type ProviderOption,
 } from "@/lib/providers";
-import { FINNHUB_PROVIDER_NAME } from "@darkscore/data-providers";
+import {
+  FINNHUB_PROVIDER_NAME,
+  TWELVE_DATA_PROVIDER_NAME,
+} from "@darkscore/data-providers";
 
 function isAvailable(option: ProviderOption): boolean {
+  if (option.id === TWELVE_DATA_PROVIDER_NAME) {
+    const key = process.env.TWELVEDATA_API_KEY;
+    return typeof key === "string" && key.length > 0;
+  }
   if (option.id === FINNHUB_PROVIDER_NAME) {
     const key = process.env.FINNHUB_API_KEY;
     return typeof key === "string" && key.length > 0;
