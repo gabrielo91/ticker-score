@@ -126,6 +126,8 @@ function ReportView({
             <Verdict
               verdict={report.verdict}
               riskScore={report.riskScore}
+              headline={report.narrative?.verdict.headline}
+              disclaimer={report.narrative?.disclaimer}
             />
           </section>
         ) : null}
