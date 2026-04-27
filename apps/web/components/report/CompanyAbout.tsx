@@ -1,6 +1,6 @@
 /**
  * CompanyAbout — short business-description block sourced from
- * `TickerInfo.description` (Yahoo `assetProfile.longBusinessSummary`).
+ * `TickerInfo.description` (e.g. Twelve Data `/profile.description`).
  * Returns `null` when the provider didn't supply a description, so the
  * report layout collapses cleanly without an empty card. Pure
  * presentational (C12).

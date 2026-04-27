@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FINNHUB_PROVIDER_NAME,
-  YAHOO_PROVIDER_NAME,
+  TWELVE_DATA_PROVIDER_NAME,
 } from "@darkscore/data-providers";
 import {
   DEFAULT_PROVIDER_ID,
@@ -19,18 +19,18 @@ import {
 } from "./providers";
 
 describe("provider catalog", () => {
-  it("default ID matches the canonical Yahoo provider name", () => {
-    expect(DEFAULT_PROVIDER_ID).toBe(YAHOO_PROVIDER_NAME);
+  it("default ID matches the canonical Twelve Data provider name", () => {
+    expect(DEFAULT_PROVIDER_ID).toBe(TWELVE_DATA_PROVIDER_NAME);
   });
 
   it("PROVIDER_OPTIONS IDs match the package-side constants", () => {
     const ids = PROVIDER_OPTIONS.map((opt) => opt.id);
-    expect(ids).toContain(YAHOO_PROVIDER_NAME);
+    expect(ids).toContain(TWELVE_DATA_PROVIDER_NAME);
     expect(ids).toContain(FINNHUB_PROVIDER_NAME);
   });
 
   it("isKnownProviderId accepts known and rejects unknown", () => {
-    expect(isKnownProviderId(YAHOO_PROVIDER_NAME)).toBe(true);
+    expect(isKnownProviderId(TWELVE_DATA_PROVIDER_NAME)).toBe(true);
     expect(isKnownProviderId(FINNHUB_PROVIDER_NAME)).toBe(true);
     expect(isKnownProviderId("ghost")).toBe(false);
   });

@@ -3,7 +3,7 @@
  * the package root (not inside a provider subdir) because Finnhub, Twelve
  * Data and any future adapter all need the same primitive — colocating it
  * inside a single provider dir would make removing that provider break the
- * others (which is exactly what happened when Yahoo was excised).
+ * others.
  *
  * Behaviour: `acquire()` blocks until the caller is allowed to issue a
  * request without exceeding `limit` calls in any rolling `windowMs` slice.

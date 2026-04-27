@@ -42,16 +42,16 @@ describe("ProviderRegistry", () => {
 
   it("looks up providers by name", () => {
     const registry = new ProviderRegistry();
-    const yahoo = stubProvider("yahoo", 0);
-    registry.register(yahoo);
-    expect(registry.byName("yahoo")).toBe(yahoo);
+    const primary = stubProvider("primary", 0);
+    registry.register(primary);
+    expect(registry.byName("primary")).toBe(primary);
     expect(registry.byName("missing")).toBeUndefined();
   });
 
   it("rejects duplicate names instead of silently overwriting", () => {
     const registry = new ProviderRegistry();
-    registry.register(stubProvider("yahoo", 0));
-    expect(() => registry.register(stubProvider("yahoo", 1))).toThrow(
+    registry.register(stubProvider("primary", 0));
+    expect(() => registry.register(stubProvider("primary", 1))).toThrow(
       /already registered/u,
     );
   });

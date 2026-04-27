@@ -8,11 +8,10 @@
  *    `toNum`/`toNumOrNull` coerce once at the boundary.
  *  - Twelve Data margins (`profit_margin`, `operating_margin`, …) are
  *    already **fractions** (e.g. `0.26110` = 26.11%), so they pass through
- *    unmodified — `Financials` stores fractions too. Yahoo and Finnhub used
- *    different scales; Twelve Data matches the domain shape directly.
+ *    unmodified — `Financials` stores fractions too.
  *  - `percent_change` from `/quote` is a **percent** (e.g. `0.84` = 0.84%);
  *    `TickerInfo.priceChangePercent` stores a fraction so we divide by 100
- *    (consistent with the shape Yahoo and Finnhub used).
+ *    (matches the shape `Finnhub` produces too).
  *  - Quarter labels follow `Q{n} {year}` derived from `fiscal_date`'s
  *    calendar month — Twelve Data does not expose fiscal-quarter metadata,
  *    so we use calendar quarters, which is what the QuarterlyTable already

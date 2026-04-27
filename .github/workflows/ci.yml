@@ -71,22 +71,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Gate the rest of the job on the FINNHUB_API_KEY secret. PRs from
-      # forks (and runs in repos that haven't configured the secret yet)
-      # don't have access to it; we surface a warning and skip the
-      # remaining steps instead of failing the workflow. Yahoo on its own
-      # 429s GitHub Actions IPs, so without the Finnhub fallback the
-      # smoke test cannot reliably pass.
-      - name: Check Finnhub key availability
+      # Gate the rest of the job on the TWELVEDATA_API_KEY secret (the
+      # default data source). PRs from forks (and runs in repos that
+      # haven't configured the secret yet) don't have access to it; we
+      # surface a warning and skip the remaining steps instead of failing
+      # the workflow.
+      - name: Check Twelve Data key availability
         id: gate
         env:
-          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
         run: |
-          if [ -n "$FINNHUB_API_KEY" ]; then
+          if [ -n "$TWELVEDATA_API_KEY" ]; then
             echo "has_key=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_key=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::FINNHUB_API_KEY secret is not configured — skipping E2E smoke tests. Set it under repo Settings → Secrets and variables → Actions."
+            echo "::warning::TWELVEDATA_API_KEY secret is not configured — skipping E2E smoke tests. Set it under repo Settings → Secrets and variables → Actions."
           fi
 
       - if: steps.gate.outputs.has_key == 'true'
@@ -109,6 +108,7 @@ jobs:
       - if: steps.gate.outputs.has_key == 'true'
         name: Start Next.js production server (background)
         env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
           pnpm --filter @darkscore/web start > /tmp/next.log 2>&1 &
@@ -127,6 +127,7 @@ jobs:
       - if: steps.gate.outputs.has_key == 'true'
         name: Run E2E smoke tests
         env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           DARKSCORE_E2E_BASE_URL: http://localhost:3000
         run: pnpm --filter @darkscore/web test

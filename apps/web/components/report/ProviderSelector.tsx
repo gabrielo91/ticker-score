@@ -2,7 +2,7 @@
 
 /**
  * ProviderSelector — client component that lets the user pick which data
- * source the report is generated from (Yahoo, Finnhub, …).
+ * source the report is generated from (Twelve Data, Finnhub, …).
  *
  * Behavior:
  *  - On mount, fetches `/api/providers` to get the live list of

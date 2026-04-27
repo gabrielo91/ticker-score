@@ -171,16 +171,16 @@ describe("CacheService", () => {
 
   describe("invalidatePattern", () => {
     it("removes only the keys matching the pattern", async () => {
-      backend.store.set("yahoo:AMZN:quote:1", "1");
-      backend.store.set("yahoo:AMZN:quote:2", "1");
-      backend.store.set("yahoo:MSFT:quote:1", "1");
+      backend.store.set("twelvedata:AMZN:quote:1", "1");
+      backend.store.set("twelvedata:AMZN:quote:2", "1");
+      backend.store.set("twelvedata:MSFT:quote:1", "1");
       backend.store.set("alpha:AMZN:quote:1", "1");
-      const r = await cache.invalidatePattern("yahoo:AMZN:*");
+      const r = await cache.invalidatePattern("twelvedata:AMZN:*");
       expect(isOk(r)).toBe(true);
       if (isOk(r)) expect(r.data).toBe(2);
-      expect(backend.store.has("yahoo:AMZN:quote:1")).toBe(false);
-      expect(backend.store.has("yahoo:AMZN:quote:2")).toBe(false);
-      expect(backend.store.has("yahoo:MSFT:quote:1")).toBe(true);
+      expect(backend.store.has("twelvedata:AMZN:quote:1")).toBe(false);
+      expect(backend.store.has("twelvedata:AMZN:quote:2")).toBe(false);
+      expect(backend.store.has("twelvedata:MSFT:quote:1")).toBe(true);
       expect(backend.store.has("alpha:AMZN:quote:1")).toBe(true);
     });
 

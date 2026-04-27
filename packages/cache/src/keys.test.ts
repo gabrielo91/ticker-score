@@ -50,24 +50,24 @@ describe("buildCacheKey", () => {
     const bucket = Date.UTC(2026, 3, 26, 14, 0, 0, 0);
     expect(
       buildCacheKey({
-        provider: "yahoo",
+        provider: "twelvedata",
         ticker: "AMZN",
         dataType: "quote",
         timestamp: ts,
       }),
-    ).toBe(`yahoo:AMZN:quote:${bucket}`);
+    ).toBe(`twelvedata:AMZN:quote:${bucket}`);
   });
 
   it("uppercases the ticker so case variations collide", () => {
     const ts = Date.UTC(2026, 3, 26, 14, 0, 0, 0);
     const lower = buildCacheKey({
-      provider: "yahoo",
+      provider: "twelvedata",
       ticker: "aapl",
       dataType: "quote",
       timestamp: ts,
     });
     const upper = buildCacheKey({
-      provider: "yahoo",
+      provider: "twelvedata",
       ticker: "AAPL",
       dataType: "quote",
       timestamp: ts,
@@ -77,7 +77,7 @@ describe("buildCacheKey", () => {
 
   it("is deterministic for identical inputs", () => {
     const parts = {
-      provider: "yahoo",
+      provider: "twelvedata",
       ticker: "MSFT",
       dataType: "financials",
       timestamp: Date.UTC(2026, 3, 26, 12, 15, 0, 0),
@@ -89,13 +89,13 @@ describe("buildCacheKey", () => {
     const a = Date.UTC(2026, 3, 26, 14, 1, 0, 0);
     const b = Date.UTC(2026, 3, 26, 14, 58, 0, 0);
     const k = (timestamp: number): string =>
-      buildCacheKey({ provider: "yahoo", ticker: "AMZN", dataType: "quote", timestamp });
+      buildCacheKey({ provider: "twelvedata", ticker: "AMZN", dataType: "quote", timestamp });
     expect(k(a)).toBe(k(b));
   });
 
   it("defaults timestamp to Date.now() when omitted", () => {
     const before = bucketTimestamp(Date.now());
-    const key = buildCacheKey({ provider: "yahoo", ticker: "AMZN", dataType: "quote" });
+    const key = buildCacheKey({ provider: "twelvedata", ticker: "AMZN", dataType: "quote" });
     const after = bucketTimestamp(Date.now());
     // Bucket must equal one of the (at most two) hour buckets straddled by the call.
     const trailing = key.split(":").pop();

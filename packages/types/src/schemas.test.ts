@@ -101,7 +101,7 @@ describe("ProviderConfigSchema", () => {
   it("requires positive timeout and non-negative priority", () => {
     expect(() =>
       ProviderConfigSchema.parse({
-        name: "yahoo",
+        name: "twelvedata",
         priority: -1,
         baseUrl: "https://example.com",
         apiKey: null,

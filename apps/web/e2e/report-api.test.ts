@@ -76,17 +76,14 @@ if (!serverReachable) {
 }
 
 /**
- * Yahoo's anti-bot layer rate-limits the cookieless `getcrumb` bootstrap on
- * fresh egress IPs (a hot spot on GitHub-hosted CI runners). When the
- * runner gets unlucky, every Yahoo-routed request fails with `getcrumb 429`
- * before our code has a chance to do anything useful. The provider dropdown
- * removed the silent Yahoo→Finnhub fallback by design, so the smoke is now
- * exposed to that flake. We treat it as a `skip` (not a `fail`) so an
- * external rate limit can't block PRs — the assertion only runs when Yahoo
- * is reachable.
+ * Twelve Data's free tier caps requests at 8/min. When the runner is
+ * unlucky (or the day's 800-call quota is exhausted), every Twelve-Data
+ * routed request fails with a 429-equivalent error. We treat it as a
+ * `skip` (not a `fail`) so an external rate limit can't block PRs — the
+ * assertion only runs when Twelve Data has quota left.
  */
-function isYahooBootstrapRateLimited(error: string): boolean {
-  return /getcrumb 429|429 Too Many Requests/u.test(error);
+function isProviderRateLimited(error: string): boolean {
+  return /429|rate limit|too many requests|exceeded the maximum/iu.test(error);
 }
 
 async function getReport(
@@ -122,8 +119,8 @@ describe("e2e: /api/report/[ticker]", () => {
     async (ctx) => {
       const r = await getReport("AAPL");
       if (!r.ok) {
-        if (isYahooBootstrapRateLimited(r.error)) {
-          console.warn(`[e2e] skipping — Yahoo throttled CI: ${r.error}`);
+        if (isProviderRateLimited(r.error)) {
+          console.warn(`[e2e] skipping — provider throttled CI: ${r.error}`);
           ctx.skip();
           return;
         }
@@ -155,12 +152,12 @@ describe("e2e: /api/report/[ticker]", () => {
   );
 
   it.skipIf(!serverReachable)(
-    "honors ?provider=yahoo and returns AAPL from Yahoo",
+    "honors ?provider=twelvedata and returns AAPL from Twelve Data",
     async (ctx) => {
-      const r = await getReport("AAPL", "yahoo");
+      const r = await getReport("AAPL", "twelvedata");
       if (!r.ok) {
-        if (isYahooBootstrapRateLimited(r.error)) {
-          console.warn(`[e2e] skipping — Yahoo throttled CI: ${r.error}`);
+        if (isProviderRateLimited(r.error)) {
+          console.warn(`[e2e] skipping — provider throttled CI: ${r.error}`);
           ctx.skip();
           return;
         }
