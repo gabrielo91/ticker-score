@@ -64,6 +64,7 @@ export function transformTickerInfo(
     sector: profile.sector ?? null,
     industry: profile.industry ?? null,
     exchange: price.exchangeName ?? null,
+    description: profile.longBusinessSummary ?? null,
     currency: price.currency ?? "USD",
     currentPrice: num(price.regularMarketPrice),
     priceChange: num(price.regularMarketChange),

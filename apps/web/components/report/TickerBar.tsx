@@ -23,8 +23,19 @@ export function TickerBar({ ticker }: TickerBarProps): JSX.Element {
         <div className="min-w-0">
           <div className="font-mono text-3xl font-bold text-[#3b82f6]">{ticker.symbol}</div>
           <div className="text-sm text-[#94a3b8] truncate">{ticker.name}</div>
-          {ticker.sector !== null ? (
-            <div className="text-xs text-[#64748b]">{ticker.sector}</div>
+          {(ticker.sector !== null || ticker.industry !== null || ticker.exchange !== null) ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#64748b]">
+              {ticker.sector !== null ? <span>{ticker.sector}</span> : null}
+              {ticker.sector !== null && ticker.industry !== null ? (
+                <span aria-hidden="true">·</span>
+              ) : null}
+              {ticker.industry !== null ? <span>{ticker.industry}</span> : null}
+              {ticker.exchange !== null ? (
+                <span className="font-mono uppercase text-[10px] tracking-wider text-[#475569]">
+                  {ticker.exchange}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="ml-auto text-right">

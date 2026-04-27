@@ -62,6 +62,7 @@ const QuoteSummaryAssetProfileSchema = z
   .object({
     sector: z.string().nullable().optional(),
     industry: z.string().nullable().optional(),
+    longBusinessSummary: z.string().nullable().optional(),
   })
   .passthrough();
 

@@ -120,6 +120,8 @@ describe("ReportDataSchema (smoke)", () => {
       sector: "Consumer Discretionary",
       industry: "Internet Retail",
       exchange: "NASDAQ",
+      description:
+        "Amazon.com, Inc. engages in the retail sale of consumer products, advertising, and subscriptions service through online and physical stores.",
       currency: "USD",
       currentPrice: 263.99,
       priceChange: 8.91,
