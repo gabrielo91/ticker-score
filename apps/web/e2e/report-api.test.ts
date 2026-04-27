@@ -5,7 +5,7 @@
  * ticker, so a green smoke here proves that the full chain works:
  *
  *   browser → Next.js route → generateReport
- *           → DataAggregator → providers (Yahoo + Finnhub fallback)
+ *           → DataAggregator → user-selected provider (no fallback)
  *           → Zod-validated typed data → EditorialStrategy scoring
  *           → ReportData JSON response
  *
@@ -75,12 +75,30 @@ if (!serverReachable) {
   );
 }
 
-async function getReport(ticker: string): Promise<ReportResponse> {
+/**
+ * Yahoo's anti-bot layer rate-limits the cookieless `getcrumb` bootstrap on
+ * fresh egress IPs (a hot spot on GitHub-hosted CI runners). When the
+ * runner gets unlucky, every Yahoo-routed request fails with `getcrumb 429`
+ * before our code has a chance to do anything useful. The provider dropdown
+ * removed the silent Yahoo→Finnhub fallback by design, so the smoke is now
+ * exposed to that flake. We treat it as a `skip` (not a `fail`) so an
+ * external rate limit can't block PRs — the assertion only runs when Yahoo
+ * is reachable.
+ */
+function isYahooBootstrapRateLimited(error: string): boolean {
+  return /getcrumb 429|429 Too Many Requests/u.test(error);
+}
+
+async function getReport(
+  ticker: string,
+  provider?: string,
+): Promise<ReportResponse> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
+    const qs = provider !== undefined ? `?provider=${provider}` : "";
     const res = await fetch(
-      `${BASE_URL}/api/report/${encodeURIComponent(ticker)}`,
+      `${BASE_URL}/api/report/${encodeURIComponent(ticker)}${qs}`,
       { signal: controller.signal },
     );
     const json: unknown = await res.json();
@@ -101,9 +119,14 @@ async function getReport(ticker: string): Promise<ReportResponse> {
 describe("e2e: /api/report/[ticker]", () => {
   it.skipIf(!serverReachable)(
     "returns ok=true with a valid report for AAPL",
-    async () => {
+    async (ctx) => {
       const r = await getReport("AAPL");
       if (!r.ok) {
+        if (isYahooBootstrapRateLimited(r.error)) {
+          console.warn(`[e2e] skipping — Yahoo throttled CI: ${r.error}`);
+          ctx.skip();
+          return;
+        }
         throw new Error(`expected ok, got error: ${r.error}`);
       }
       expect(r.data.ticker.symbol).toBe("AAPL");
@@ -127,6 +150,38 @@ describe("e2e: /api/report/[ticker]", () => {
       expect(json.ok).toBe(false);
       if (!json.ok) {
         expect(json.error.toLowerCase()).toContain("invalid ticker");
+      }
+    },
+  );
+
+  it.skipIf(!serverReachable)(
+    "honors ?provider=yahoo and returns AAPL from Yahoo",
+    async (ctx) => {
+      const r = await getReport("AAPL", "yahoo");
+      if (!r.ok) {
+        if (isYahooBootstrapRateLimited(r.error)) {
+          console.warn(`[e2e] skipping — Yahoo throttled CI: ${r.error}`);
+          ctx.skip();
+          return;
+        }
+        throw new Error(`expected ok, got error: ${r.error}`);
+      }
+      expect(r.data.ticker.symbol).toBe("AAPL");
+      expect(r.data.ticker.currentPrice).toBeGreaterThan(0);
+    },
+  );
+
+  it.skipIf(!serverReachable)(
+    "returns 400 for an unknown provider id",
+    async () => {
+      const res = await fetch(
+        `${BASE_URL}/api/report/AAPL?provider=ghost`,
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as ReportResponse;
+      expect(json.ok).toBe(false);
+      if (!json.ok) {
+        expect(json.error.toLowerCase()).toContain("unknown data provider");
       }
     },
   );

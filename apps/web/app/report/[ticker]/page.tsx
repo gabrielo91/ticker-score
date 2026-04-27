@@ -15,6 +15,8 @@
  */
 import type { ReportData } from "@darkscore/types";
 import { generateReport } from "@/lib/report-generator";
+import { resolveProviderId } from "@/lib/providers";
+import { ProviderSelector } from "@/components/report/ProviderSelector";
 import { TickerBar } from "@/components/report/TickerBar";
 import { CompanyAbout } from "@/components/report/CompanyAbout";
 import { HowItWorks } from "@/components/report/HowItWorks";
@@ -31,27 +33,41 @@ import { ClipboardExport } from "@/components/report/ClipboardExport";
 
 interface PageProps {
   readonly params: { readonly ticker: string };
+  readonly searchParams?: { readonly provider?: string };
 }
 
 export default async function ReportPage({
   params,
+  searchParams,
 }: PageProps): Promise<JSX.Element> {
-  const result = await generateReport(params.ticker);
+  const provider = resolveProviderId(searchParams?.provider);
+  const result = await generateReport(params.ticker, { provider });
   if (!result.ok) {
     return (
-      <ErrorScreen ticker={params.ticker} message={result.error.message} />
+      <ErrorScreen
+        ticker={params.ticker}
+        message={result.error.message}
+        provider={provider}
+      />
     );
   }
-  return <ReportView report={result.data} />;
+  return <ReportView report={result.data} provider={provider} />;
 }
 
-function ReportView({ report }: { report: ReportData }): JSX.Element {
+function ReportView({
+  report,
+  provider,
+}: {
+  report: ReportData;
+  provider: string;
+}): JSX.Element {
   const latestQuarter = report.quarterlyResults[0];
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-8">
       <div className="max-w-[1080px] mx-auto space-y-6">
         {/* PAGE 1 — Snapshot & Score */}
         <section className="page space-y-6" aria-label="Snapshot and score">
+          <ProviderSelector currentProvider={provider} />
           <HowItWorks />
           <TickerBar ticker={report.ticker} />
           <CompanyAbout ticker={report.ticker} />
@@ -113,20 +129,27 @@ function ReportView({ report }: { report: ReportData }): JSX.Element {
 function ErrorScreen({
   ticker,
   message,
+  provider,
 }: {
   ticker: string;
   message: string;
+  provider: string;
 }): JSX.Element {
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-10">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <ProviderSelector currentProvider={provider} />
         <h1 className="text-3xl font-semibold mb-2">Report unavailable</h1>
         <p className="text-text-muted mb-6">
           Could not generate a report for{" "}
           <code className="px-1.5 py-0.5 rounded bg-darkscore-card text-accent-amber font-mono">
             {ticker.toUpperCase()}
+          </code>{" "}
+          using{" "}
+          <code className="px-1.5 py-0.5 rounded bg-darkscore-card text-accent-amber font-mono">
+            {provider}
           </code>
-          .
+          . Try switching the data source above.
         </p>
         <pre className="whitespace-pre-wrap rounded-card border border-darkscore-border bg-darkscore-card p-4 text-sm status-red">
           {message}
