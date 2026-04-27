@@ -38,6 +38,9 @@ importers:
       '@darkscore/db':
         specifier: workspace:^
         version: link:../../packages/db
+      '@darkscore/narrative':
+        specifier: workspace:^
+        version: link:../../packages/narrative
       '@darkscore/scoring-engine':
         specifier: workspace:^
         version: link:../../packages/scoring-engine

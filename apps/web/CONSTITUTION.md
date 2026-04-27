@@ -8,7 +8,7 @@
 C1 (Adapter Pattern), C3 (Strict TypeScript), C4 (Package Boundaries), C5 (Error Boundaries), C7 (Spec-Driven), C8 (Agent Harness), C9 (Monorepo Hygiene), C10 (Test Expectations), C11 (Architecture Diagrams), C12 (Frontend Layering), C13 (Living Plan Protocol).
 
 ## Allowed imports
-- `@darkscore/types`, `@darkscore/cache`, `@darkscore/db`, `@darkscore/data-providers`, `@darkscore/scoring-engine`.
+- `@darkscore/types`, `@darkscore/cache`, `@darkscore/db`, `@darkscore/data-providers`, `@darkscore/scoring-engine`, `@darkscore/narrative`.
 - External: `next`, `react`, `react-dom`, plus what the spec lists. New runtime deps require a spec amendment.
 
 ## Forbidden patterns
