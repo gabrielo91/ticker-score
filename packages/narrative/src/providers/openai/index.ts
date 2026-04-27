@@ -16,6 +16,7 @@
  * model's JSON output.
  */
 import {
+  ForwardEstimatesSchema,
   NarrativeDataSchema,
   err,
   isErr,
@@ -35,6 +36,8 @@ import { NARRATIVE_SYSTEM_PROMPT, buildUserPrompt } from "./prompt.js";
 
 export const OPENAI_PROVIDER_NAME = "openai";
 export const OPENAI_DEFAULT_MODEL = "gpt-4o-mini";
+/** W5-2: forward-estimate guardrails require deterministic decoding. */
+export const NARRATIVE_TEMPERATURE = 0;
 
 export interface OpenAINarrativeProviderOptions
   extends Omit<OpenAIClientOptions, "model"> {
@@ -55,7 +58,14 @@ export class OpenAINarrativeProvider implements NarrativeProvider {
     this.name = options.name ?? OPENAI_PROVIDER_NAME;
     this.model = options.model ?? OPENAI_DEFAULT_MODEL;
     this.client =
-      options.client ?? new OpenAIClient({ ...options, model: this.model });
+      options.client ??
+      new OpenAIClient({
+        ...options,
+        model: this.model,
+        // Forward estimates demand a deterministic decode (W5-2). Pin
+        // temperature to 0 unless the caller explicitly overrode it.
+        temperature: options.temperature ?? NARRATIVE_TEMPERATURE,
+      });
     this.now = options.now ?? (() => new Date());
   }
 
@@ -93,7 +103,7 @@ export class OpenAINarrativeProvider implements NarrativeProvider {
       );
     }
 
-    const candidate = this.attachMetadata(parsedJson);
+    const candidate = this.attachMetadata(this.salvageForwardEstimates(parsedJson));
     const parsed = NarrativeDataSchema.safeParse(candidate);
     if (!parsed.success) {
       return err(
@@ -125,6 +135,24 @@ export class OpenAINarrativeProvider implements NarrativeProvider {
       model: this.model,
       generatedAt: this.now().toISOString(),
     };
+  }
+
+  /**
+   * W5-2 anti-hallucination: forward estimates are a best-effort field. If
+   * the model omits them we set `forwardEstimates: null`; if they fail
+   * `ForwardEstimatesSchema` we drop them to `null` rather than failing the
+   * whole narrative. The full-document `NarrativeDataSchema.safeParse` then
+   * accepts the salvaged candidate cleanly.
+   */
+  private salvageForwardEstimates(content: unknown): unknown {
+    if (typeof content !== "object" || content === null) return content;
+    const base = content as Record<string, unknown>;
+    const raw = base.forwardEstimates;
+    if (raw === undefined || raw === null) {
+      return { ...base, forwardEstimates: null };
+    }
+    const parsed = ForwardEstimatesSchema.safeParse(raw);
+    return { ...base, forwardEstimates: parsed.success ? parsed.data : null };
   }
 
   private mapClientError(e: OpenAIClientError): NarrativeError {
