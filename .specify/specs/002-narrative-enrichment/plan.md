@@ -3,8 +3,8 @@
 
 ## Current State
 
-**Status**: Wave 4-1 COMPLETE (PR #30 merged to main as `bd32c95`). Wave 4-2 IN REVIEW on `feat/w4-2-openai-narrative` — OpenAI adapter (`gpt-4o-mini`, JSON-mode, T=0.2) with 10 unit tests + recorded fixture.
-**Next action**: After W4-2 merges, start W4-4 (web orchestration: env-driven provider selection in `apps/web/lib/report-generator.ts`, cache-first call, `narrativeAvailable` wiring). W4-3 (Anthropic) remains optional/stretch.
+**Status**: Wave 4-2 COMPLETE (PR #32 merged to main as `01bd9c8`). OpenAI adapter (`gpt-4o-mini`, JSON-mode, T=0.2) with 10 unit tests + recorded fixture is on `main`. The `@darkscore/narrative` package now exposes `OpenAINarrativeProvider` alongside the mock provider, but no consumer wires it yet — `narrativeAvailable` still defaults to `false` in `apps/web/lib/report-generator.ts`.
+**Next action**: Start W4-4 (web orchestration): env-driven provider selection (`NARRATIVE_PROVIDER`, `OPENAI_API_KEY`, `NARRATIVE_MODEL`) in `apps/web/lib/report-generator.ts`, cache-first call against `@darkscore/cache`, and `narrativeAvailable` flag wiring. W4-3 (Anthropic) remains optional/stretch.
 **Handoff instruction**: Read this file, then [`spec.md`](./spec.md), then [`packages/narrative/CONSTITUTION.md`](../../../packages/narrative/CONSTITUTION.md) before touching code. Run `pnpm turbo validate && pnpm turbo test` to confirm a clean baseline.
 **Last updated**: 2026-04-27
 
@@ -15,9 +15,9 @@
 | Wave | Scope | Status |
 |------|-------|--------|
 | W4-1 | Narrative package skeleton: types, registry, content-hash cache key, mock provider, errors, tests, boundary-checker entry, package CONSTITUTION | ✅ Done (PR #30) |
-| W4-2 | OpenAI adapter (`gpt-4o-mini`, JSON-mode, T≤0.2), recorded-fixture integration test | 🔄 In review |
+| W4-2 | OpenAI adapter (`gpt-4o-mini`, JSON-mode, T≤0.2), recorded-fixture integration test | ✅ Done (PR #32) |
 | W4-3 | *(optional)* Anthropic adapter, parallel shape | ⏳ Stretch |
-| W4-4 | `apps/web` orchestration: cache-first call to active provider after scoring; `narrativeAvailable` flag wiring | ⏳ Next (after W4-2) |
+| W4-4 | `apps/web` orchestration: cache-first call to active provider after scoring; `narrativeAvailable` flag wiring | ⏳ Next |
 | W4-5 | UI sections: catalysts/risks columns, verdict prose, card subtitles, chart annotations, scenario targets — all gated on `narrativeAvailable` | ⏳ Pending W4-4 |
 | W4-6 | End-to-end smoke + cache-hit verification + schema-violation degradation test | ⏳ Pending W4-5 |
 
@@ -47,7 +47,7 @@
 - `pnpm turbo typecheck` ✅ 11/11
 - `pnpm --filter @darkscore/narrative test` ✅ 11/11
 
-### Wave 4-2: OpenAI Narrative Provider 🔄
+### Wave 4-2: OpenAI Narrative Provider ✅
 
 | Item | Where |
 |------|-------|
