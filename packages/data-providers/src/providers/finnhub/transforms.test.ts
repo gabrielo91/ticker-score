@@ -51,6 +51,7 @@ describe("transformTickerInfo", () => {
     expect(info.name).toBe("Apple Inc");
     expect(info.industry).toBe("Technology");
     expect(info.sector).toBeNull();
+    expect(info.description).toBeNull();
     expect(info.currentPrice).toBe(175);
     expect(info.priceChange).toBe(1.5);
     expect(info.priceChangePercent).toBeCloseTo(0.0086, 6);

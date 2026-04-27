@@ -37,6 +37,7 @@ const SAMPLE_TICKER: TickerInfo = {
   sector: null,
   industry: null,
   exchange: null,
+  description: null,
   currency: "USD",
   currentPrice: 100,
   priceChange: 1,

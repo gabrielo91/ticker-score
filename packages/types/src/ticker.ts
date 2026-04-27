@@ -19,6 +19,7 @@ export const TickerInfoSchema = z.object({
   sector: z.string().nullable(),
   industry: z.string().nullable(),
   exchange: z.string().nullable(),
+  description: z.string().nullable(),
   currency: z.string().min(1),
   currentPrice: z.number().finite(),
   priceChange: z.number().finite(),

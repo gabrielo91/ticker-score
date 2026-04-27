@@ -47,6 +47,8 @@ const SAMPLE_SUMMARY = {
         assetProfile: {
           sector: "Consumer Cyclical",
           industry: "Internet Retail",
+          longBusinessSummary:
+            "Amazon.com, Inc. engages in the retail sale of consumer products and subscriptions through online and physical stores in North America and internationally.",
         },
         financialData: {
           totalRevenue: { raw: 600_000_000_000, fmt: "600B" },
@@ -101,20 +103,24 @@ describe("transformTickerInfo", () => {
     expect(info.symbol).toBe("AMZN");
     expect(info.name).toBe("Amazon.com, Inc.");
     expect(info.sector).toBe("Consumer Cyclical");
+    expect(info.industry).toBe("Internet Retail");
+    expect(info.description).toContain("retail sale of consumer products");
     expect(info.currentPrice).toBeCloseTo(175.12);
     expect(info.week52High).toBe(200);
     expect(info.marketCap).toBe(1_800_000_000_000);
     expect(info.volume).toBe(35_000_000);
   });
 
-  it("falls back to symbol when neither long nor short name present", () => {
+  it("falls back to symbol when neither long nor short name present, and exposes a null description", () => {
     const minimal = parseSummary({
       quoteSummary: {
         result: [{ price: {}, summaryDetail: {}, assetProfile: {} }],
         error: null,
       },
     });
-    expect(transformTickerInfo("XYZ", minimal).name).toBe("XYZ");
+    const info = transformTickerInfo("XYZ", minimal);
+    expect(info.name).toBe("XYZ");
+    expect(info.description).toBeNull();
   });
 });
 

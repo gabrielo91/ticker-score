@@ -58,6 +58,7 @@ export function transformTickerInfo(
     sector: null, // Finnhub free profile2 does not expose GICS sector
     industry: profile.finnhubIndustry ?? null,
     exchange: profile.exchange ?? null,
+    description: null, // Finnhub free profile2 does not expose a long business summary
     currency: profile.currency ?? "USD",
     currentPrice: num(quote.c),
     priceChange: num(quote.d),

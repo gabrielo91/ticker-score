@@ -16,6 +16,8 @@
 import type { ReportData } from "@darkscore/types";
 import { generateReport } from "@/lib/report-generator";
 import { TickerBar } from "@/components/report/TickerBar";
+import { CompanyAbout } from "@/components/report/CompanyAbout";
+import { HowItWorks } from "@/components/report/HowItWorks";
 import { KPIStrip } from "@/components/report/KPIStrip";
 import { RiskGauge } from "@/components/report/RiskGauge";
 import { PriceChart } from "@/components/report/PriceChart";
@@ -50,7 +52,9 @@ function ReportView({ report }: { report: ReportData }): JSX.Element {
       <div className="max-w-[1080px] mx-auto space-y-6">
         {/* PAGE 1 — Snapshot & Score */}
         <section className="page space-y-6" aria-label="Snapshot and score">
+          <HowItWorks />
           <TickerBar ticker={report.ticker} />
+          <CompanyAbout ticker={report.ticker} />
           <KPIStrip
             keyMetrics={report.keyMetrics}
             financials={report.financials}
