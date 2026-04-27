@@ -14,8 +14,8 @@ interface MetricCardsProps {
 
 export function MetricCards({ title, cards }: MetricCardsProps): JSX.Element {
   return (
-    <section className="mb-6">
-      <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-[#64748b] mb-3">
+    <section>
+      <h2 className="text-[13px] font-semibold uppercase tracking-[1.5px] text-[#64748b] mb-4">
         {title}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

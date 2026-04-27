@@ -304,36 +304,108 @@ function buildKpiStrip(info: TickerInfo, metrics: KeyMetrics): KpiHighlight[] {
 }
 
 function buildValuationCards(metrics: KeyMetrics): DataCard[] {
-  const items: DataPoint[] = [
-    point("P/E (TTM)", metrics.peRatioTTM, (v) => v.toFixed(1)),
-    point("P/E (Fwd)", metrics.peRatioForward, (v) => v.toFixed(1)),
-    point("P/S", metrics.priceToSales, (v) => v.toFixed(2)),
-    point("EV/EBITDA", metrics.evToEbitda, (v) => v.toFixed(1)),
-    point("PEG", metrics.pegRatio, (v) => v.toFixed(2)),
-  ];
-  return [{ title: "Valuation", subtitle: null, items }];
+  const peCard: DataCard = {
+    title: "P/E Ratio",
+    subtitle: null,
+    items: [
+      point("TTM P/E", metrics.peRatioTTM, (v) => `${v.toFixed(1)}x`),
+      point("Forward P/E", metrics.peRatioForward, (v) => `${v.toFixed(1)}x`),
+      point("PEG", metrics.pegRatio, (v) => `${v.toFixed(2)}x`),
+    ],
+  };
+  const evCard: DataCard = {
+    title: "Enterprise Value",
+    subtitle: null,
+    items: [
+      point("EV/EBITDA", metrics.evToEbitda, (v) => `${v.toFixed(1)}x`),
+      point("EV/Revenue", metrics.evToRevenue, (v) => `${v.toFixed(2)}x`),
+      point("P/S", metrics.priceToSales, (v) => `${v.toFixed(2)}x`),
+    ],
+  };
+  const otherCard: DataCard = {
+    title: "Other Multiples",
+    subtitle: null,
+    items: [
+      point("P/B", metrics.priceToBook, (v) => `${v.toFixed(2)}x`),
+      point("Dividend Yield", metrics.dividendYield, (v) => `${(v * 100).toFixed(2)}%`),
+      point("Payout Ratio", metrics.payoutRatio, (v) => `${(v * 100).toFixed(1)}%`),
+    ],
+  };
+  return [peCard, evCard, otherCard];
 }
 
 function buildFinancialHealthCards(fin: Financials): DataCard[] {
-  const items: DataPoint[] = [
-    point("Debt/Equity", fin.debtToEquity, (v) => v.toFixed(2)),
-    point("Current Ratio", fin.currentRatio, (v) => v.toFixed(2)),
-    point("Net Margin", fin.netMargin, (v) => `${(v * 100).toFixed(1)}%`),
-    point("FCF (TTM)", fin.freeCashFlowTTM, formatCompact),
-    point("ROE", fin.returnOnEquity, (v) => `${(v * 100).toFixed(1)}%`),
-  ];
-  return [{ title: "Financial Health", subtitle: null, items }];
+  const balanceCard: DataCard = {
+    title: "Balance Sheet",
+    subtitle: null,
+    items: [
+      point("Cash", fin.cash, formatCompact),
+      point("Total Debt", fin.totalDebt, formatCompact),
+      point("Debt/Equity", fin.debtToEquity, (v) => v.toFixed(2)),
+      point("Current Ratio", fin.currentRatio, (v) => v.toFixed(2)),
+    ],
+  };
+  const cashFlowCard: DataCard = {
+    title: "Cash Flow",
+    subtitle: null,
+    items: [
+      point("OCF (TTM)", fin.operatingCashFlowTTM, formatCompact),
+      point("FCF (TTM)", fin.freeCashFlowTTM, formatCompact),
+      point("CapEx (TTM)", fin.capexTTM, formatCompact),
+    ],
+  };
+  const profitabilityCard: DataCard = {
+    title: "Profitability",
+    subtitle: null,
+    items: [
+      point("Gross Margin", fin.grossMargin, (v) => `${(v * 100).toFixed(1)}%`),
+      point("Operating Margin", fin.operatingMargin, (v) => `${(v * 100).toFixed(1)}%`),
+      point("Net Margin", fin.netMargin, (v) => `${(v * 100).toFixed(1)}%`),
+      point("ROE", fin.returnOnEquity, (v) => `${(v * 100).toFixed(1)}%`),
+    ],
+  };
+  return [balanceCard, cashFlowCard, profitabilityCard];
 }
 
 function buildGrowthCards(growth: GrowthData): DataCard[] {
-  const items: DataPoint[] = [
-    point("Revenue YoY", growth.revenueGrowthYoY, (v) => `${v.toFixed(1)}%`),
-    point("Revenue Fwd", growth.revenueGrowthForward, (v) => `${v.toFixed(1)}%`),
-    point("Earnings YoY", growth.earningsGrowthYoY, (v) => `${v.toFixed(1)}%`),
-    point("Earnings Fwd", growth.earningsGrowthForward, (v) => `${v.toFixed(1)}%`),
-    point("EBITDA Fwd", growth.ebitdaGrowthForward, (v) => `${v.toFixed(1)}%`),
-  ];
-  return [{ title: "Growth", subtitle: null, items }];
+  const revenueCard: DataCard = {
+    title: "Revenue Growth",
+    subtitle: null,
+    items: [
+      point("Revenue YoY", growth.revenueGrowthYoY, (v) => `${v.toFixed(1)}%`),
+      point("Revenue Fwd", growth.revenueGrowthForward, (v) => `${v.toFixed(1)}%`),
+    ],
+  };
+  const earningsCard: DataCard = {
+    title: "Earnings Growth",
+    subtitle: null,
+    items: [
+      point("Earnings YoY", growth.earningsGrowthYoY, (v) => `${v.toFixed(1)}%`),
+      point("Earnings Fwd", growth.earningsGrowthForward, (v) => `${v.toFixed(1)}%`),
+      point("EBITDA Fwd", growth.ebitdaGrowthForward, (v) => `${v.toFixed(1)}%`),
+    ],
+  };
+  const segmentsCard: DataCard = {
+    title: "Segment Growth",
+    subtitle: null,
+    items:
+      growth.segments.length > 0
+        ? growth.segments.slice(0, 4).map((seg) => ({
+            label: seg.name,
+            value: `${seg.growthYoYPercent >= 0 ? "+" : ""}${seg.growthYoYPercent.toFixed(1)}%`,
+            status: null,
+            note: null,
+          }))
+        : [
+            {
+              label: "Segment data",
+              value: NOT_AVAILABLE,
+              status: null,
+              note: null,
+            },
+          ],
+  };
+  return [revenueCard, earningsCard, segmentsCard];
 }
 
 function buildLatestEarnings(quarters: ReadonlyArray<QuarterlyResult>) {
