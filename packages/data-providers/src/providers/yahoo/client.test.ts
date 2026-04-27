@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { isErr, isOk } from "@darkscore/types";
 import { RateLimiter, YahooClient, type YahooClientOptions } from "./client.js";
+import type { SessionStore, YahooSession } from "./session-store.js";
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -120,6 +121,92 @@ describe("YahooClient — quoteSummary (authenticated)", () => {
     const r = await client.fetchQuoteSummary("AMZN", ["price"]);
     expect(isErr(r)).toBe(true);
     if (isErr(r)) expect(r.error.message).toMatch(/cookie/iu);
+  });
+
+  it("uses the injected SessionStore: reads on entry, skips bootstrap on hit", async () => {
+    const seeded: YahooSession = { cookie: "A1=stored", crumb: "stored-crumb" };
+    const calls = { get: 0, set: 0, del: 0 };
+    const store: SessionStore = {
+      async get() {
+        calls.get++;
+        return seeded;
+      },
+      async set() {
+        calls.set++;
+      },
+      async del() {
+        calls.del++;
+      },
+    };
+    const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === SESSION_URL || url === CRUMB_URL) {
+        throw new Error(`unexpected bootstrap call to ${url}`);
+      }
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      expect(headers.cookie).toBe("A1=stored");
+      expect(url).toContain("crumb=stored-crumb");
+      return jsonResponse({ quoteSummary: { result: [], error: null } });
+    });
+    const client = new YahooClient({
+      fetchImpl,
+      sessionBootstrapUrl: SESSION_URL,
+      crumbUrl: CRUMB_URL,
+      sessionStore: store,
+    });
+    const r = await client.fetchQuoteSummary("AMZN", ["price"]);
+    expect(isOk(r)).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(calls.get).toBeGreaterThanOrEqual(1);
+    expect(calls.set).toBe(0);
+  });
+
+  it("persists a freshly-bootstrapped session to the SessionStore", async () => {
+    let stored: YahooSession | null = null;
+    const store: SessionStore = {
+      async get() {
+        return stored;
+      },
+      async set(s) {
+        stored = s;
+      },
+      async del() {
+        stored = null;
+      },
+    };
+    const { opts } = withSession(() => jsonResponse({}));
+    const client = new YahooClient({ ...opts, sessionStore: store });
+    await client.fetchQuoteSummary("AMZN", ["price"]);
+    expect(stored).toEqual({ cookie: "A1=token", crumb: "test-crumb-XYZ" });
+  });
+
+  it("calls SessionStore.del on 401 before retrying", async () => {
+    const calls = { del: 0 };
+    let stored: YahooSession | null = null;
+    const store: SessionStore = {
+      async get() {
+        return stored;
+      },
+      async set(s) {
+        stored = s;
+      },
+      async del() {
+        calls.del++;
+        stored = null;
+      },
+    };
+    let apiHit = 0;
+    const { opts } = withSession(() => {
+      apiHit++;
+      if (apiHit === 1) {
+        return new Response("Unauthorized", { status: 401, statusText: "Unauthorized" });
+      }
+      return jsonResponse({ quoteSummary: { result: [], error: null } });
+    });
+    const client = new YahooClient({ ...opts, sessionStore: store });
+    const r = await client.fetchQuoteSummary("AMZN", ["price"]);
+    expect(isOk(r)).toBe(true);
+    expect(calls.del).toBe(1);
   });
 });
 

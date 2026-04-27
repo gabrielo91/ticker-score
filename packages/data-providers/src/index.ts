@@ -34,6 +34,14 @@ export {
 } from "./providers/yahoo/client.js";
 
 export {
+  CachedSessionStore,
+  InMemorySessionStore,
+  DEFAULT_SESSION_TTL_SECONDS,
+  type SessionStore,
+  type YahooSession,
+} from "./providers/yahoo/session-store.js";
+
+export {
   AlphaVantageProvider,
   ALPHA_VANTAGE_DEFAULT_PRIORITY,
   ALPHA_VANTAGE_PROVIDER_NAME,
