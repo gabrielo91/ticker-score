@@ -64,3 +64,81 @@ jobs:
         run: pnpm turbo test
         continue-on-error: true  # Tests being added incrementally
 
+  e2e:
+    name: E2E Smoke
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gate the rest of the job on the FINNHUB_API_KEY secret. PRs from
+      # forks (and runs in repos that haven't configured the secret yet)
+      # don't have access to it; we surface a warning and skip the
+      # remaining steps instead of failing the workflow. Yahoo on its own
+      # 429s GitHub Actions IPs, so without the Finnhub fallback the
+      # smoke test cannot reliably pass.
+      - name: Check Finnhub key availability
+        id: gate
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          if [ -n "$FINNHUB_API_KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FINNHUB_API_KEY secret is not configured — skipping E2E smoke tests. Set it under repo Settings → Secrets and variables → Actions."
+          fi
+
+      - if: steps.gate.outputs.has_key == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: steps.gate.outputs.has_key == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - if: steps.gate.outputs.has_key == 'true'
+        name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - if: steps.gate.outputs.has_key == 'true'
+        name: Build workspace
+        run: pnpm turbo build
+
+      - if: steps.gate.outputs.has_key == 'true'
+        name: Start Next.js production server (background)
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          pnpm --filter @darkscore/web start > /tmp/next.log 2>&1 &
+          echo $! > /tmp/next.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000 > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start within 30s"
+          cat /tmp/next.log
+          exit 1
+
+      - if: steps.gate.outputs.has_key == 'true'
+        name: Run E2E smoke tests
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          DARKSCORE_E2E_BASE_URL: http://localhost:3000
+        run: pnpm --filter @darkscore/web test
+
+      - if: always() && steps.gate.outputs.has_key == 'true'
+        name: Stop Next.js server
+        run: |
+          if [ -f /tmp/next.pid ]; then
+            kill -TERM $(cat /tmp/next.pid) 2>/dev/null || true
+            sleep 1
+            kill -KILL $(cat /tmp/next.pid) 2>/dev/null || true
+          fi
+          echo "--- server log (tail) ---"
+          tail -100 /tmp/next.log 2>/dev/null || true
+
