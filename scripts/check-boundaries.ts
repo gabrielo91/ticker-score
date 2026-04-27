@@ -17,6 +17,7 @@ type PackageName =
   | "@darkscore/db"
   | "@darkscore/data-providers"
   | "@darkscore/scoring-engine"
+  | "@darkscore/narrative"
   | "@darkscore/web";
 
 const ALLOWED: Record<PackageName, ReadonlyArray<PackageName>> = {
@@ -25,12 +26,14 @@ const ALLOWED: Record<PackageName, ReadonlyArray<PackageName>> = {
   "@darkscore/db": ["@darkscore/types"],
   "@darkscore/data-providers": ["@darkscore/types", "@darkscore/cache"],
   "@darkscore/scoring-engine": ["@darkscore/types"],
+  "@darkscore/narrative": ["@darkscore/types", "@darkscore/cache"],
   "@darkscore/web": [
     "@darkscore/types",
     "@darkscore/cache",
     "@darkscore/db",
     "@darkscore/data-providers",
     "@darkscore/scoring-engine",
+    "@darkscore/narrative",
   ],
 };
 
@@ -40,6 +43,7 @@ const PACKAGE_ROOTS: Array<{ dir: string; pkg: PackageName }> = [
   { dir: "packages/db", pkg: "@darkscore/db" },
   { dir: "packages/data-providers", pkg: "@darkscore/data-providers" },
   { dir: "packages/scoring-engine", pkg: "@darkscore/scoring-engine" },
+  { dir: "packages/narrative", pkg: "@darkscore/narrative" },
   { dir: "apps/web", pkg: "@darkscore/web" },
 ];
 

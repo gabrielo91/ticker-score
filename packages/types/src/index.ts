@@ -10,5 +10,6 @@ export * from "./ticker.js";
 export * from "./financials.js";
 export * from "./score.js";
 export * from "./provider.js";
+export * from "./narrative.js";
 export * from "./report.js";
 
