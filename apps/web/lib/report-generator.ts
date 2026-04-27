@@ -20,11 +20,17 @@
  */
 import {
   DataAggregator,
+  FINNHUB_PROVIDER_NAME,
   FinnhubProvider,
   ProviderRegistry,
   YahooFinanceProvider,
 } from "@darkscore/data-providers";
 import { getYahooRuntime } from "./yahoo-singleton";
+import {
+  DEFAULT_PROVIDER_ID,
+  isKnownProviderId,
+  type ProviderId,
+} from "./providers";
 import { EditorialStrategy, runScoring } from "@darkscore/scoring-engine";
 import {
   err,
@@ -49,14 +55,31 @@ import { NOT_AVAILABLE } from "./format";
 const PRICE_HISTORY_MONTHS = 12;
 const QUARTERLY_HISTORY_QUARTERS = 8;
 
+export interface GenerateReportOptions {
+  /**
+   * Data source the user picked from the UI. When omitted, defaults to
+   * `DEFAULT_PROVIDER_ID` (Yahoo). The aggregator routes the read to the
+   * named provider only — there is **no silent fallback** (the user asked
+   * for a specific source, so a failure must surface as an error).
+   */
+  readonly provider?: string;
+}
+
 export async function generateReport(
   ticker: string,
+  options: GenerateReportOptions = {},
 ): Promise<Result<ReportData, Error>> {
   const parsed = TickerSymbolSchema.safeParse(ticker.toUpperCase());
   if (!parsed.success) {
     return err(new Error(`Invalid ticker symbol "${ticker}"`));
   }
   const symbol: TickerSymbol = parsed.data;
+
+  const requested = options.provider ?? DEFAULT_PROVIDER_ID;
+  if (!isKnownProviderId(requested)) {
+    return err(new Error(`Unknown data provider "${requested}"`));
+  }
+  const providerId: ProviderId = requested;
 
   // The Yahoo client and its `SessionStore` are kept on a process-wide
   // singleton so the cookie/crumb bootstrap is paid at most once per
@@ -66,14 +89,25 @@ export async function generateReport(
   const registry = new ProviderRegistry().register(
     new YahooFinanceProvider({ client }),
   );
-  // Finnhub is registered as a fallback (priority 1) when an API key is
-  // provided. Yahoo stays primary at priority 0; the aggregator only falls
-  // through to Finnhub on Yahoo failures (e.g. throttling).
+  // Finnhub is registered when an API key is provided. With per-request
+  // provider selection, it is no longer a fallback — it is an opt-in source
+  // the user can pick from the dropdown.
   const finnhubKey = process.env.FINNHUB_API_KEY;
-  if (typeof finnhubKey === "string" && finnhubKey.length > 0) {
-    registry.register(new FinnhubProvider({ apiKey: finnhubKey }));
+  const finnhubAvailable =
+    typeof finnhubKey === "string" && finnhubKey.length > 0;
+  if (finnhubAvailable) {
+    registry.register(new FinnhubProvider({ apiKey: finnhubKey as string }));
   }
-  const aggregator = new DataAggregator(registry, cache);
+  if (providerId === FINNHUB_PROVIDER_NAME && !finnhubAvailable) {
+    return err(
+      new Error(
+        `Provider "${FINNHUB_PROVIDER_NAME}" is not available (FINNHUB_API_KEY is not configured)`,
+      ),
+    );
+  }
+  const aggregator = new DataAggregator(registry, cache, {
+    providerName: providerId,
+  });
 
   const [tickerRes, priceRes, finRes, metricsRes, quarterlyRes] =
     await Promise.all([

@@ -36,6 +36,13 @@ export interface DataAggregatorOptions {
   readonly ttlSeconds?: number;
   /** When `true`, skip the cache read but still write back. Default `false`. */
   readonly forceRefresh?: boolean;
+  /**
+   * When set, route the read to the named provider only — no fallback chain.
+   * If the named provider is not registered, the call returns `err` (it does
+   * NOT silently fall through to other providers). Used by the web app to
+   * honor a user-selected data source.
+   */
+  readonly providerName?: string;
 }
 
 export class DataAggregator {
@@ -116,11 +123,19 @@ export class DataAggregator {
       if (isOk(cached) && cached.data !== null) return ok(cached.data);
     }
 
-    const providers = this.registry.byPriority();
+    const providerName = options?.providerName ?? this.defaults.providerName;
+    const providers =
+      providerName !== undefined
+        ? this.resolveSingle(providerName)
+        : this.registry.byPriority();
     if (providers.length === 0) {
+      const detail =
+        providerName !== undefined
+          ? `provider "${providerName}" is not registered`
+          : "no providers registered";
       return err(
         new Error(
-          `DataAggregator: no providers registered for ${dataType}(${symbol})`,
+          `DataAggregator: ${detail} for ${dataType}(${symbol})`,
         ),
       );
     }
@@ -135,11 +150,20 @@ export class DataAggregator {
       }
       failures.push(`${provider.name}: ${result.error.message}`);
     }
+    const prefix =
+      providerName !== undefined
+        ? `provider "${providerName}" failed`
+        : "all providers failed";
     return err(
       new Error(
-        `DataAggregator: all providers failed for ${dataType}(${symbol}) — ${failures.join(" | ")}`,
+        `DataAggregator: ${prefix} for ${dataType}(${symbol}) — ${failures.join(" | ")}`,
       ),
     );
+  }
+
+  private resolveSingle(name: string): ReadonlyArray<DataProvider> {
+    const found = this.registry.byName(name);
+    return found !== undefined ? [found] : [];
   }
 }
 

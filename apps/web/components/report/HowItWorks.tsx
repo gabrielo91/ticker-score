@@ -50,12 +50,15 @@ export function HowItWorks(): JSX.Element {
             Where the data comes from
           </h3>
           <p>
-            <strong className="text-[#f0f0f0]">Yahoo Finance</strong> is the
-            primary source for quotes, fundamentals and price history.{" "}
-            <strong className="text-[#f0f0f0]">Finnhub</strong> is consulted as
-            a fallback for fundamentals when Yahoo throttles the request; its
-            free tier doesn&apos;t expose historical candles, so the chart may
-            be empty when only Finnhub is available.
+            Pick the source from the{" "}
+            <strong className="text-[#f0f0f0]">Data source</strong> dropdown
+            above. <strong className="text-[#f0f0f0]">Yahoo Finance</strong>{" "}
+            (default) covers quotes, fundamentals and price history.{" "}
+            <strong className="text-[#f0f0f0]">Finnhub</strong> is an
+            alternative for fundamentals; its free tier doesn&apos;t expose
+            historical candles, so the chart may be empty when Finnhub is
+            selected. Failures are not silently re-routed — the report shows
+            the error so you can switch sources yourself.
           </p>
         </div>
 

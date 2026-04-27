@@ -148,5 +148,53 @@ describe("DataAggregator", () => {
     const onlyKey = keys[0] ?? "";
     expect(onlyKey.startsWith("aggregator:AMZN:ticker-info:")).toBe(true);
   });
+
+  describe("strict provider selection (no fallback)", () => {
+    it("routes to the named provider only and skips others on success", async () => {
+      const yahoo = fakeProvider("yahoo", 0, ok(SAMPLE_TICKER));
+      const finnhub = fakeProvider("finnhub", 1, ok(SAMPLE_TICKER));
+      registry.register(yahoo);
+      registry.register(finnhub);
+
+      const aggregator = new DataAggregator(registry, cache);
+      const r = await aggregator.getTickerInfo("AMZN", {
+        providerName: "finnhub",
+      });
+      expect(isOk(r)).toBe(true);
+      expect(yahoo.calls).toBe(0);
+      expect(finnhub.calls).toBe(1);
+    });
+
+    it("does NOT fall back when the named provider fails", async () => {
+      const yahoo = fakeProvider("yahoo", 0, err(new Error("rate limited")));
+      const finnhub = fakeProvider("finnhub", 1, ok(SAMPLE_TICKER));
+      registry.register(yahoo);
+      registry.register(finnhub);
+
+      const aggregator = new DataAggregator(registry, cache);
+      const r = await aggregator.getTickerInfo("AMZN", {
+        providerName: "yahoo",
+      });
+      expect(isErr(r)).toBe(true);
+      expect(yahoo.calls).toBe(1);
+      expect(finnhub.calls).toBe(0);
+      if (isErr(r)) {
+        expect(r.error.message).toMatch(/provider "yahoo" failed/u);
+        expect(r.error.message).toMatch(/yahoo: rate limited/u);
+      }
+    });
+
+    it("returns err when the named provider is not registered", async () => {
+      registry.register(fakeProvider("yahoo", 0, ok(SAMPLE_TICKER)));
+      const aggregator = new DataAggregator(registry, cache);
+      const r = await aggregator.getTickerInfo("AMZN", {
+        providerName: "ghost",
+      });
+      expect(isErr(r)).toBe(true);
+      if (isErr(r)) {
+        expect(r.error.message).toMatch(/provider "ghost" is not registered/u);
+      }
+    });
+  });
 });
 
