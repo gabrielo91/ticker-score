@@ -16,7 +16,7 @@
  * wires them together.
  */
 import { err, ok, type Result } from "@darkscore/types";
-import { RateLimiter } from "../yahoo/client.js";
+import { RateLimiter } from "../../rate-limiter.js";
 
 const DEFAULT_BASE_URL = "https://finnhub.io/api/v1";
 const DEFAULT_TIMEOUT_MS = 10_000;
