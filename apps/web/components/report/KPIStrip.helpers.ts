@@ -4,7 +4,7 @@
  * declarative (C12).
  */
 import type { Financials, KeyMetrics } from "@darkscore/types";
-import { formatCompact } from "../../lib/format";
+import { NOT_AVAILABLE, formatCompact } from "../../lib/format";
 
 export type KpiStatus = "green" | "amber" | "red" | null;
 
@@ -28,14 +28,14 @@ export function buildCells(
   return [
     {
       label: "P/E (TTM)",
-      value: metrics.peRatioTTM !== null ? `${metrics.peRatioTTM.toFixed(1)}x` : "—",
+      value: metrics.peRatioTTM !== null ? `${metrics.peRatioTTM.toFixed(1)}x` : NOT_AVAILABLE,
       status: peStatus(metrics.peRatioTTM),
       note: peNote(metrics.peRatioTTM),
     },
     {
       label: "Fwd P/E",
       value:
-        metrics.peRatioForward !== null ? `${metrics.peRatioForward.toFixed(1)}x` : "—",
+        metrics.peRatioForward !== null ? `${metrics.peRatioForward.toFixed(1)}x` : NOT_AVAILABLE,
       status: peStatus(metrics.peRatioForward),
       note: forwardPeNote(metrics.peRatioTTM, metrics.peRatioForward),
     },
@@ -59,7 +59,7 @@ export function buildCells(
     },
     {
       label: "Debt/Equity",
-      value: fin.debtToEquity !== null ? fin.debtToEquity.toFixed(2) : "—",
+      value: fin.debtToEquity !== null ? fin.debtToEquity.toFixed(2) : NOT_AVAILABLE,
       status: deStatus(fin.debtToEquity),
       note: deNote(fin.debtToEquity),
     },

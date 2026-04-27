@@ -6,6 +6,7 @@
  * Pure presentational (C12). All derivations live above the JSX.
  */
 import type { QuarterlyResult } from "@darkscore/types";
+import { NOT_AVAILABLE } from "../../lib/format";
 
 interface QuarterlyTableProps {
   readonly quarters: ReadonlyArray<QuarterlyResult>;
@@ -35,7 +36,7 @@ function toRow(q: QuarterlyResult): QuarterlyRow {
     key: `${q.fiscalYear}-${q.quarter}`,
     quarter: `${q.quarter} ${q.fiscalYear}`,
     revenue: `$${REVENUE_FORMATTER.format(q.revenue)}`,
-    netMargin: netMarginPct !== null ? `${netMarginPct.toFixed(1)}%` : "—",
+    netMargin: netMarginPct !== null ? `${netMarginPct.toFixed(1)}%` : NOT_AVAILABLE,
     eps: `$${q.eps.toFixed(2)}`,
     yoyGrowth: `${q.revenueGrowthYoYPercent >= 0 ? "+" : ""}${q.revenueGrowthYoYPercent.toFixed(1)}%`,
     yoyPositive: q.revenueGrowthYoYPercent >= 0,
