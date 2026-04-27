@@ -19,16 +19,11 @@
  * required for local dev). W3-5 will add it behind the same orchestrator.
  */
 import {
-  CacheService,
-  createRedisClient,
-  type CacheBackend,
-  type RedisClient,
-} from "@darkscore/cache";
-import {
   DataAggregator,
   ProviderRegistry,
   YahooFinanceProvider,
 } from "@darkscore/data-providers";
+import { getYahooRuntime } from "./yahoo-singleton";
 import { EditorialStrategy, runScoring } from "@darkscore/scoring-engine";
 import {
   err,
@@ -52,43 +47,6 @@ import {
 const PRICE_HISTORY_MONTHS = 12;
 const QUARTERLY_HISTORY_QUARTERS = 8;
 
-/**
- * No-op cache backend used when `REDIS_URL` is unset. `get` always returns
- * `null` (cache miss) and `set`/`del`/`scan` are inert. This lets the
- * orchestrator keep its cache-first contract on a developer laptop without
- * Redis running, without complicating the production code path.
- */
-class NullCacheBackend implements CacheBackend {
-  async get(): Promise<string | null> {
-    return null;
-  }
-  async set(): Promise<"OK" | null> {
-    return "OK";
-  }
-  async del(): Promise<number> {
-    return 0;
-  }
-  async scan(): Promise<[string, string[]]> {
-    return ["0", []];
-  }
-}
-
-interface CacheBuildOutcome {
-  readonly cache: CacheService;
-  readonly client: RedisClient | null;
-}
-
-function buildCache(): CacheBuildOutcome {
-  const url = process.env.REDIS_URL;
-  if (typeof url === "string" && url.length > 0) {
-    const created = createRedisClient({ url });
-    if (created.ok) {
-      return { cache: new CacheService(created.data), client: created.data };
-    }
-  }
-  return { cache: new CacheService(new NullCacheBackend()), client: null };
-}
-
 export async function generateReport(
   ticker: string,
 ): Promise<Result<ReportData, Error>> {
@@ -98,8 +56,14 @@ export async function generateReport(
   }
   const symbol: TickerSymbol = parsed.data;
 
-  const { cache } = buildCache();
-  const registry = new ProviderRegistry().register(new YahooFinanceProvider());
+  // The Yahoo client and its `SessionStore` are kept on a process-wide
+  // singleton so the cookie/crumb bootstrap is paid at most once per
+  // process (or once globally when Redis is configured) — see
+  // `yahoo-singleton.ts` for rationale.
+  const { cache, client } = getYahooRuntime();
+  const registry = new ProviderRegistry().register(
+    new YahooFinanceProvider({ client }),
+  );
   const aggregator = new DataAggregator(registry, cache);
 
   const [tickerRes, priceRes, finRes, metricsRes, quarterlyRes] =

@@ -11,18 +11,30 @@
  * Session / crumb: since 2024 Yahoo's `/v10/finance/quoteSummary` endpoint
  * requires a `crumb` CSRF token plus the session cookies that minted it.
  * The client lazily bootstraps a session on first use:
- *   1. GET `https://finance.yahoo.com/` to seed `A1`/`A1S`/`A3` cookies.
- *   2. GET `/v1/test/getcrumb` carrying those cookies to receive a crumb.
- *   3. Cache `{ cookie, crumb }` for the lifetime of the client; on 401
- *      from `quoteSummary`, invalidate and retry once (crumbs rotate).
+ *   1. GET `https://fc.yahoo.com/` to seed the `A3` cookie. (404 by design,
+ *      but Yahoo's CloudFront cache strips Set-Cookie from `finance.yahoo.com`,
+ *      so this is the only reliable source.)
+ *   2. GET `/v1/test/getcrumb` carrying that cookie to receive a crumb.
+ *   3. Persist `{ cookie, crumb }` in a `SessionStore` (in-memory by default;
+ *      Redis-backed in production via `CachedSessionStore`) so cross-request
+ *      and cross-process callers reuse it instead of re-bootstrapping.
+ *      `getcrumb` is aggressively rate-limited per-IP, so re-bootstrapping
+ *      per request is what trips production 429s.
+ *   4. On 401 from `quoteSummary`, drop the cached session and retry once
+ *      (crumbs rotate every few minutes).
  * The chart endpoint (`/v8/finance/chart`) does not require the crumb but
- * benefits from the cookie for anti-bot heuristics.
+ * piggybacks on the cookie when one is already cached.
  *
  * The client owns the *transport*. Schema validation lives in
  * `schemas.ts` and the typed shape conversion in `transforms.ts`; the
  * provider in `index.ts` wires them together.
  */
 import { err, ok, type Result } from "@darkscore/types";
+import {
+  InMemorySessionStore,
+  type SessionStore,
+  type YahooSession,
+} from "./session-store.js";
 
 const DEFAULT_BASE_URL = "https://query1.finance.yahoo.com";
 // `fc.yahoo.com` deliberately returns 404 but always emits the `A3`
@@ -31,9 +43,11 @@ const DEFAULT_BASE_URL = "https://query1.finance.yahoo.com";
 const DEFAULT_SESSION_BOOTSTRAP_URL = "https://fc.yahoo.com/";
 const DEFAULT_CRUMB_URL =
   "https://query1.finance.yahoo.com/v1/test/getcrumb";
+// Recent UAs matter: yfinance/yahooquery maintainers report Yahoo's
+// anti-bot rejects older Chrome strings. Bump on each major Chrome cycle.
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RATE_LIMIT_PER_SECOND = 5;
 const RATE_LIMIT_WINDOW_MS = 1_000;
@@ -46,11 +60,13 @@ export interface YahooClientOptions {
   readonly rateLimitPerSecond?: number;
   readonly sessionBootstrapUrl?: string;
   readonly crumbUrl?: string;
-}
-
-interface YahooSession {
-  readonly cookie: string;
-  readonly crumb: string;
+  /**
+   * Pluggable session storage. Defaults to a process-local in-memory store;
+   * pass `CachedSessionStore` in production so multiple Next.js workers /
+   * cold starts share one bootstrap instead of independently hammering
+   * `getcrumb`.
+   */
+  readonly sessionStore?: SessionStore;
 }
 
 /** Sliding-window rate limiter. Internal — exported only for tests. */
@@ -92,7 +108,7 @@ export class YahooClient {
   private readonly limiter: RateLimiter;
   private readonly sessionBootstrapUrl: string;
   private readonly crumbUrl: string;
-  private session: YahooSession | null = null;
+  private readonly sessionStore: SessionStore;
   private sessionInflight: Promise<Result<YahooSession>> | null = null;
 
   constructor(options: YahooClientOptions = {}) {
@@ -106,6 +122,7 @@ export class YahooClient {
     this.sessionBootstrapUrl =
       options.sessionBootstrapUrl ?? DEFAULT_SESSION_BOOTSTRAP_URL;
     this.crumbUrl = options.crumbUrl ?? DEFAULT_CRUMB_URL;
+    this.sessionStore = options.sessionStore ?? new InMemorySessionStore();
   }
 
   /**
@@ -134,16 +151,19 @@ export class YahooClient {
    * GET `/v8/finance/chart/{symbol}?range=...&interval=...` and return
    * the raw JSON body. Callers MUST validate via `ChartResponseSchema`.
    * The chart endpoint does not require a crumb but the session cookie
-   * helps with Yahoo's anti-bot heuristics, so we attach it when present.
+   * helps with Yahoo's anti-bot heuristics, so we attach it when one is
+   * already cached. We do *not* bootstrap on the chart path — chart is
+   * the cheapest fallback and shouldn't pay the bootstrap cost.
    */
-  fetchChart(
+  async fetchChart(
     symbol: string,
     range: string,
     interval: string,
   ): Promise<Result<unknown>> {
     const path = `/v8/finance/chart/${encodeURIComponent(symbol)}`;
     const search = new URLSearchParams({ range, interval });
-    return this.getJson(`${path}?${search.toString()}`, this.session?.cookie);
+    const cached = await this.sessionStore.get();
+    return this.getJson(`${path}?${search.toString()}`, cached?.cookie);
   }
 
   /**
@@ -162,7 +182,7 @@ export class YahooClient {
       const result = await this.getJson(path, sessionRes.data.cookie);
       if (result.ok) return result;
       if (attempt === 0 && /\b401\b/u.test(result.error.message)) {
-        this.session = null;
+        await this.sessionStore.del();
         continue;
       }
       return result;
@@ -173,16 +193,25 @@ export class YahooClient {
   /**
    * Resolve the cached session, hydrating it on first use. Concurrent
    * callers share the in-flight bootstrap to avoid hammering Yahoo.
+   * Looks up the session store first (in-memory by default; Redis when
+   * configured) before paying for a fresh bootstrap.
    */
   private async ensureSession(): Promise<Result<YahooSession>> {
-    if (this.session !== null) return ok(this.session);
     if (this.sessionInflight !== null) return this.sessionInflight;
-    this.sessionInflight = this.bootstrapSession().then((res) => {
-      this.sessionInflight = null;
-      if (res.ok) this.session = res.data;
-      return res;
+    const inflight = this.runEnsureSession();
+    this.sessionInflight = inflight;
+    inflight.finally(() => {
+      if (this.sessionInflight === inflight) this.sessionInflight = null;
     });
-    return this.sessionInflight;
+    return inflight;
+  }
+
+  private async runEnsureSession(): Promise<Result<YahooSession>> {
+    const cached = await this.sessionStore.get();
+    if (cached !== null) return ok(cached);
+    const bootstrapped = await this.bootstrapSession();
+    if (bootstrapped.ok) await this.sessionStore.set(bootstrapped.data);
+    return bootstrapped;
   }
 
   private async bootstrapSession(): Promise<Result<YahooSession>> {
