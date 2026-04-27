@@ -31,6 +31,44 @@ import type {
   FinnhubQuote,
 } from "./schemas.js";
 
+/**
+ * Known XBRL `concept` aliases for revenue across the SEC filing universe.
+ * Different filers tag the same line item differently; checking only one or two
+ * tags causes silent revenue=0 reads (e.g. Alphabet uses `Revenues`,
+ * post-ASC-606 retailers use `RevenueFromContractWithCustomerExcludingAssessedTax`,
+ * banks use `RevenuesNetOfInterestExpense`, financial services often use
+ * `InterestAndDividendIncomeOperating`). Order is from most→least common.
+ */
+const REVENUE_CONCEPTS = [
+  "Revenues",
+  "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "Revenue",
+  "SalesRevenueNet",
+  "SalesRevenueGoodsNet",
+  "SalesRevenueServicesNet",
+  "TotalRevenues",
+  "RevenuesNetOfInterestExpense",
+  "InterestAndDividendIncomeOperating",
+] as const;
+
+const NET_INCOME_CONCEPTS = [
+  "NetIncomeLoss",
+  "NetIncome",
+  "NetIncomeLossAvailableToCommonStockholdersBasic",
+] as const;
+
+const EPS_CONCEPTS = [
+  "EarningsPerShareDiluted",
+  "EarningsPerShareBasicAndDiluted",
+  "EarningsPerShareBasic",
+] as const;
+
+const OPERATING_INCOME_CONCEPTS = [
+  "OperatingIncomeLoss",
+  "OperatingIncome",
+  "IncomeLossFromContinuingOperationsBeforeIncomeTaxes",
+] as const;
+
 function num(value: number | null | undefined, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
@@ -117,8 +155,10 @@ export function transformFinancials(
     findLineItem(cf, "NetCashProvidedByUsedInOperatingActivities") ?? 0;
   const capex =
     findLineItem(cf, "PaymentsToAcquirePropertyPlantAndEquipment") ?? 0;
+  const revenueTTM =
+    numOrNull(m.revenueTTM) ?? sumQuarterlyRevenue(reported, 4);
   return {
-    revenueTTM: num(m.revenueTTM),
+    revenueTTM,
     netIncomeTTM: num(m.netIncomeCommonTTM),
     epsTTM: num(m.epsTTM),
     cash,
@@ -162,20 +202,20 @@ function transformQuarter(
   prior: FinnhubFinancialEntry | undefined,
 ): QuarterlyResult {
   const ic = entry.report.ic;
-  const revenue =
-    findLineItem(ic, "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax") ?? 0;
-  const operatingIncome = findLineItem(ic, "OperatingIncomeLoss") ?? 0;
-  const netIncome = findLineItem(ic, "NetIncomeLoss");
-  const eps =
-    findLineItem(ic, "EarningsPerShareDiluted", "EarningsPerShareBasic") ?? 0;
+  const revenue = findLineItem(ic, ...REVENUE_CONCEPTS) ?? 0;
+  const operatingIncome = findLineItem(ic, ...OPERATING_INCOME_CONCEPTS) ?? 0;
+  const netIncome = findLineItem(ic, ...NET_INCOME_CONCEPTS);
+  const eps = findLineItem(ic, ...EPS_CONCEPTS) ?? 0;
   const priorRevenue =
-    prior !== undefined
-      ? findLineItem(
-          prior.report.ic,
-          "Revenues",
-          "RevenueFromContractWithCustomerExcludingAssessedTax",
-        )
-      : null;
+    prior !== undefined ? findLineItem(prior.report.ic, ...REVENUE_CONCEPTS) : null;
+  if (revenue === 0 && ic.length > 0) {
+    // XBRL tag mismatch likely — surface for diagnostics; observability
+    // package will replace this with structured logging later.
+    // eslint-disable-next-line no-console -- temporary diagnostic until observability pkg lands
+    console.warn(
+      `[finnhub] revenue=0 for Q${entry.quarter} ${entry.year} — XBRL tag mismatch likely`,
+    );
+  }
   const growth =
     priorRevenue !== null && priorRevenue !== 0
       ? (revenue - priorRevenue) / priorRevenue
@@ -193,5 +233,28 @@ function transformQuarter(
     segments: [],
     notes: null,
   };
+}
+
+/**
+ * Fallback for `revenueTTM` when Finnhub's `basicFinancials.metric.revenueTTM`
+ * is missing (some non-standard filers, ADRs). Sums revenue from the most
+ * recent up-to-`count` quarterly filings using the same alias list as
+ * `transformQuarter`. Returns 0 when no quarter resolves a revenue value.
+ */
+function sumQuarterlyRevenue(
+  reported: FinnhubFinancialsReported,
+  count: number,
+): number {
+  let total = 0;
+  let used = 0;
+  for (const entry of reported.data) {
+    if (entry.quarter < 1 || entry.quarter > 4) continue;
+    const r = findLineItem(entry.report.ic, ...REVENUE_CONCEPTS);
+    if (r === null) continue;
+    total += r;
+    used += 1;
+    if (used >= count) break;
+  }
+  return total;
 }
 
