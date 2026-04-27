@@ -3,7 +3,7 @@
 # Spec 002 — Narrative Enrichment
 
 > Companion documents (read alongside this spec):
-> - [Constitution](../../memory/constitution.md) — governing rules C1–C13
+> - [Constitution](../../memory/constitution.md) — governing rules C1–C14
 > - [Spec 001](../001-darkscore-foundation/spec.md) — foundation this builds on
 > - [C4 Diagrams](../001-darkscore-foundation/c4-diagrams.md) — L2/L3 (this spec adds one container)
 > - [Plan](./plan.md) — wave breakdown and current state

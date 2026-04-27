@@ -2,7 +2,7 @@
 
 # DarkScore Constitution
 
-> **Version**: 3 (C1–C13) · **Last amended**: 2026-04-26 · **Entry point**: `AGENTS.md`
+> **Version**: 4 (C1–C14) · **Last amended**: 2026-04-27 · **Entry point**: `AGENTS.md`
 
 <!-- When adding or amending a rule, bump the version, update "Last amended",
      update the C-range above, and run pnpm check:constitution-drift to find
@@ -10,7 +10,7 @@
 
 The DarkScore Constitution defines the **immutable governing principles** for the platform. Every agent, contributor, and tool MUST read this document before writing or modifying code. Violations are blocking.
 
-These thirteen rules (C1–C13) are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
+These fourteen rules (C1–C14) are the contract that keeps the codebase coherent across time, agents, and refactors. They are referenced by spec, plan, and task documents throughout `.specify/`.
 
 ---
 
@@ -97,3 +97,12 @@ No feature is implemented without a spec. Every task must reference which spec s
 - A cold-start agent's instruction is: **"Read `.specify/specs/001-darkscore-foundation/plan.md` — continue from the Current State section."** Nothing else should be needed.
 - The Current State section must be the FIRST thing in plan.md after the title — never more than 5 lines
 - If plan.md is stale, updating it is the highest priority before any implementation work
+
+### C14 — Server-Side Observability
+- All server-side logging goes through `@darkscore/observability` (`getRootLogger()` + `createLogger()`). No direct `pino` import outside the package; no `console.*` in any request-path code.
+- Every log call MUST be **structured**: `logger.<level>({ ...fields }, message)`. String-only log calls are forbidden in app code (CLI scripts under `scripts/` and one-shot tools like `packages/db/src/migrate.ts` are exempt).
+- **Never log secrets.** API keys, bearer tokens, passwords, and any value listed in the package's `REDACT_PATHS` MUST be censored. The redactor is a safety net, not a license — code MUST also avoid placing secrets into log payloads in the first place.
+- **Levels have meaning.** `error` = unrecoverable / unexpected; `warn` = recoverable / fail-open by design (e.g. provider quota exhausted ⇒ Spec-001 layout); `info` = boot + request milestones; `debug`/`trace` = opt-in only, never enabled in prod.
+- Modules that log more than once MUST own a child logger: `getRootLogger().child({ component: "<name>" })`. Request-scoped fields (`ticker`, `requestId`) attach via further `.child()` at the orchestration layer.
+- The two pure packages — `@darkscore/types` and `@darkscore/scoring-engine` — MUST NOT import `@darkscore/observability` (no I/O is allowed in either, per their package CONSTITUTIONs).
+- Output is JSON to stdout. Pretty-printing is a presentation concern; pipe through `pino-pretty` at the dev shell if desired. APM, error aggregation (Sentry), distributed tracing (OpenTelemetry) and metrics are out of scope until a future spec amends this rule.

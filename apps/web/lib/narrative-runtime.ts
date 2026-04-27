@@ -21,6 +21,7 @@ import {
   OpenAINarrativeProvider,
   buildNarrativeCacheKey,
 } from "@darkscore/narrative";
+import { getRootLogger, type Logger } from "@darkscore/observability";
 import {
   NarrativeDataSchema,
   isErr,
@@ -107,11 +108,18 @@ const FAIL_OPEN: NarrativeCallResult = {
  * by provider error, schema violation) surfaces as `narrativeAvailable:
  * false`. The page renders the Spec-001 layout in that case (per the spec
  * rollback plan). Cache writes are best-effort and never block the response.
+ *
+ * Provider errors emit a structured `warn` via `@darkscore/observability`
+ * (Spec 003 / C14) so operators can distinguish "feature off" from
+ * "provider failed" without losing the fail-open semantics. The optional
+ * `logger` parameter lets tests inject a capturing logger; production paths
+ * use a process-wide child of the root logger.
  */
 export async function runNarrative(
   provider: NarrativeProvider | null,
   cache: CacheService,
   input: NarrativeInput,
+  logger: Logger = defaultLogger(),
 ): Promise<NarrativeCallResult> {
   if (provider === null) return FAIL_OPEN;
 
@@ -129,7 +137,19 @@ export async function runNarrative(
   }
 
   const generated = await provider.generate(input);
-  if (isErr(generated)) return FAIL_OPEN;
+  if (isErr(generated)) {
+    logger.warn(
+      {
+        provider: provider.name,
+        model: provider.model,
+        ticker: input.ticker.symbol,
+        code: extractErrorCode(generated.error),
+        message: extractErrorMessage(generated.error),
+      },
+      "narrative provider failed open",
+    );
+    return FAIL_OPEN;
+  }
 
   await cache.set(key, generated.data, NARRATIVE_CACHE_TTL_SECONDS);
   return { narrative: generated.data, narrativeAvailable: true };
@@ -139,5 +159,26 @@ function readNonEmpty(value: string | undefined): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+let cachedLogger: Logger | null = null;
+function defaultLogger(): Logger {
+  if (cachedLogger === null) {
+    cachedLogger = getRootLogger().child({ component: "narrative-runtime" });
+  }
+  return cachedLogger;
+}
+
+function extractErrorCode(error: unknown): string {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+  return "UNKNOWN";
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 

@@ -52,10 +52,12 @@ Shows all packages in the monorepo and their **allowed** dependency relationship
 graph TB
   subgraph packages["packages/"]
     types["@darkscore/types<br/>(Zod schemas, interfaces)"]
+    observability["@darkscore/observability<br/>(pino logger, redaction)"]
     cache["@darkscore/cache<br/>(Redis, ioredis)"]
     db["@darkscore/db<br/>(Drizzle, PostgreSQL)"]
     providers["@darkscore/data-providers<br/>(Yahoo, Registry, Aggregator)"]
     scoring["@darkscore/scoring-engine<br/>(Strategies, Components)"]
+    narrative["@darkscore/narrative<br/>(LLM provider adapters)"]
   end
   subgraph apps["apps/"]
     web["apps/web<br/>(Next.js 14, SSR)"]
@@ -66,31 +68,39 @@ graph TB
   providers -->|imports types| types
   providers -->|uses cache| cache
   scoring -->|imports types| types
+  narrative -->|imports types| types
+  narrative -->|uses cache| cache
   web -->|imports types| types
   web -->|fetches data| providers
   web -->|computes scores| scoring
   web -->|persists reports| db
   web -->|cache reads| cache
+  web -->|narrative| narrative
+  web -->|logs| observability
 ```
 
-**Leaf packages** (`types`) have ZERO internal dependencies. They are imported by everything but import nothing from `@darkscore/*`. `cache` and `db` depend only on `types`.
+**Leaf packages** (`types`, `observability`) have ZERO internal `@darkscore/*` dependencies. They are imported by other packages but import nothing back. `cache` and `db` depend only on `types`.
 
-**Middleware packages** (`data-providers`, `scoring-engine`) sit between leaf packages and the app. Providers depend on `types` + `cache`. Scoring depends on `types` ONLY — it is pure computation with no I/O.
+**Middleware packages** (`data-providers`, `scoring-engine`, `narrative`) sit between leaf packages and the app. Providers depend on `types` + `cache`. Narrative depends on `types` + `cache`. Scoring depends on `types` ONLY — it is pure computation with no I/O.
 
 **App layer** (`web`) is the only package allowed to import from ALL other packages. It orchestrates the full flow: fetch → score → persist → render.
 
-**FORBIDDEN connections** (not shown = not allowed): `scoring → db`, `scoring → cache`, `scoring → providers`, `cache → db`, `db → cache`, `providers → db`. Any import not shown in this diagram is a spec violation.
+**Observability** is a leaf with one strict prohibition: `@darkscore/types` and `@darkscore/scoring-engine` MUST NOT import it (those packages are I/O-pure per their CONSTITUTIONs and per C14). Every other server-side package may import it where errors are caught at the boundary.
+
+**FORBIDDEN connections** (not shown = not allowed): `scoring → db`, `scoring → cache`, `scoring → providers`, `scoring → observability`, `cache → db`, `db → cache`, `providers → db`, `types → observability`. Any import not shown in this diagram is a spec violation.
 
 **Dependency rules table:**
 
 | Package | May import from |
 |---------|----------------|
 | `@darkscore/types` | Nothing (leaf) |
+| `@darkscore/observability` | Nothing (leaf — pino only) |
 | `@darkscore/cache` | `types` |
 | `@darkscore/db` | `types` |
 | `@darkscore/data-providers` | `types`, `cache` |
 | `@darkscore/scoring-engine` | `types` (ONLY — pure computation) |
-| `apps/web` | `types`, `cache`, `db`, `data-providers`, `scoring-engine` |
+| `@darkscore/narrative` | `types`, `cache` |
+| `apps/web` | `types`, `cache`, `db`, `data-providers`, `scoring-engine`, `narrative`, `observability` |
 
 ---
 
