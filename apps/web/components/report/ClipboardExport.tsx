@@ -10,6 +10,7 @@
  */
 import { useState } from "react";
 import type { ReportData } from "@darkscore/types";
+import { NOT_AVAILABLE } from "../../lib/format";
 
 type ToastState = "idle" | "ok" | "error";
 
@@ -30,11 +31,11 @@ function buildSummary(data: ReportData): string {
   const { ticker, riskScore, financials, keyMetrics, verdict } = data;
   const targets = verdict.priceTargets;
   const peTtm =
-    keyMetrics.peRatioTTM !== null ? `${keyMetrics.peRatioTTM.toFixed(1)}x` : "—";
+    keyMetrics.peRatioTTM !== null ? `${keyMetrics.peRatioTTM.toFixed(1)}x` : NOT_AVAILABLE;
   const peFwd =
     keyMetrics.peRatioForward !== null
       ? `${keyMetrics.peRatioForward.toFixed(1)}x`
-      : "—";
+      : NOT_AVAILABLE;
   return [
     `${ticker.symbol} DARK RISK SCORE REPORT`,
     "===========================",

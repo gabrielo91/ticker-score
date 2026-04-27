@@ -44,6 +44,7 @@ import {
   type TickerInfo,
   type TickerSymbol,
 } from "@darkscore/types";
+import { NOT_AVAILABLE } from "./format";
 
 const PRICE_HISTORY_MONTHS = 12;
 const QUARTERLY_HISTORY_QUARTERS = 8;
@@ -159,13 +160,13 @@ function buildKpiStrip(info: TickerInfo, metrics: KeyMetrics): KpiHighlight[] {
     },
     {
       label: "Market Cap",
-      value: info.marketCap !== null ? formatCompact(info.marketCap) : "—",
+      value: info.marketCap !== null ? formatCompact(info.marketCap) : NOT_AVAILABLE,
       status: null,
       note: null,
     },
     {
       label: "P/E (TTM)",
-      value: metrics.peRatioTTM !== null ? metrics.peRatioTTM.toFixed(1) : "—",
+      value: metrics.peRatioTTM !== null ? metrics.peRatioTTM.toFixed(1) : NOT_AVAILABLE,
       status: null,
       note: null,
     },
@@ -210,8 +211,8 @@ function buildLatestEarnings(quarters: ReadonlyArray<QuarterlyResult>) {
   const latest = quarters[0];
   if (latest === undefined) {
     return {
-      quarter: "—",
-      reportedAt: "—",
+      quarter: NOT_AVAILABLE,
+      reportedAt: NOT_AVAILABLE,
       highlights: [],
       upcoming: null,
     };
@@ -249,7 +250,7 @@ function point(
 ): DataPoint {
   return {
     label,
-    value: value !== null ? format(value) : "—",
+    value: value !== null ? format(value) : NOT_AVAILABLE,
     status: null,
     note: null,
   };

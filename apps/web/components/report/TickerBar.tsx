@@ -5,7 +5,7 @@
  * live in TickerBar.helpers and lib/format.
  */
 import type { TickerInfo } from "@darkscore/types";
-import { formatCompact } from "../../lib/format";
+import { NOT_AVAILABLE, formatCompact } from "../../lib/format";
 import { formatChange, formatPrice, rangeMarkerPct } from "./TickerBar.helpers";
 
 interface TickerBarProps {
@@ -70,7 +70,7 @@ export function TickerBar({ ticker }: TickerBarProps): JSX.Element {
         <span>
           Mkt Cap:{" "}
           <strong className="text-[#f0f0f0]">
-            {ticker.marketCap !== null ? formatCompact(ticker.marketCap, { prefix: "$" }) : "—"}
+            {ticker.marketCap !== null ? formatCompact(ticker.marketCap, { prefix: "$" }) : NOT_AVAILABLE}
           </strong>
         </span>
         {ticker.volume !== null ? (
