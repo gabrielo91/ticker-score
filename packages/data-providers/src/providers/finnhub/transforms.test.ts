@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   transformFinancials,
   transformKeyMetrics,
@@ -152,6 +152,116 @@ describe("transformQuarterlyResults", () => {
       ],
     };
     expect(transformQuarterlyResults(reported, 4)).toEqual([]);
+  });
+
+  it("reads revenue from `Revenue` (singular) — Alphabet/Google-style XBRL", () => {
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        {
+          year: 2024,
+          quarter: 2,
+          report: {
+            bs: [],
+            cf: [],
+            ic: [
+              { concept: "Revenue", value: 84_700_000_000 },
+              { concept: "OperatingIncomeLoss", value: 27_400_000_000 },
+              { concept: "NetIncomeLoss", value: 23_600_000_000 },
+              { concept: "EarningsPerShareDiluted", value: 1.89 },
+            ],
+          },
+        },
+      ],
+    };
+    const out = transformQuarterlyResults(reported, 1);
+    expect(out[0]?.revenue).toBe(84_700_000_000);
+    expect(out[0]?.operatingMarginPercent).toBeCloseTo(27_400_000_000 / 84_700_000_000, 6);
+  });
+
+  it("reads revenue from `SalesRevenueNet` — older filers", () => {
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        {
+          year: 2018,
+          quarter: 4,
+          report: {
+            bs: [],
+            cf: [],
+            ic: [
+              { concept: "SalesRevenueNet", value: 100 },
+              { concept: "OperatingIncomeLoss", value: 25 },
+              { concept: "NetIncomeLoss", value: 18 },
+              { concept: "EarningsPerShareDiluted", value: 0.5 },
+            ],
+          },
+        },
+      ],
+    };
+    const out = transformQuarterlyResults(reported, 1);
+    expect(out[0]?.revenue).toBe(100);
+  });
+
+  it("warns when revenue resolves to 0 with non-empty income statement", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        {
+          year: 2024,
+          quarter: 1,
+          report: {
+            bs: [],
+            cf: [],
+            ic: [
+              { concept: "SomeUnknownRevenueTag", value: 999 },
+              { concept: "OperatingIncomeLoss", value: 10 },
+            ],
+          },
+        },
+      ],
+    };
+    transformQuarterlyResults(reported, 1);
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0]?.[0]).toContain("XBRL tag mismatch");
+    warn.mockRestore();
+  });
+});
+
+describe("transformFinancials revenueTTM fallback", () => {
+  it("sums the four most recent quarterly revenues when m.revenueTTM is missing", () => {
+    const mkQuarter = (year: number, quarter: number, revenue: number) => ({
+      year,
+      quarter,
+      report: {
+        bs: [],
+        cf: [],
+        ic: [{ concept: "Revenue", value: revenue }],
+      },
+    });
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        mkQuarter(2024, 4, 90),
+        mkQuarter(2024, 3, 80),
+        mkQuarter(2024, 2, 70),
+        mkQuarter(2024, 1, 60),
+        mkQuarter(2023, 4, 50),
+      ],
+    };
+    const f = transformFinancials({ metric: {} }, reported);
+    expect(f.revenueTTM).toBe(300);
+  });
+
+  it("prefers m.revenueTTM when provided", () => {
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        {
+          year: 2024,
+          quarter: 4,
+          report: { bs: [], cf: [], ic: [{ concept: "Revenue", value: 1 }] },
+        },
+      ],
+    };
+    const f = transformFinancials({ metric: { revenueTTM: 12_345 } }, reported);
+    expect(f.revenueTTM).toBe(12_345);
   });
 });
 
