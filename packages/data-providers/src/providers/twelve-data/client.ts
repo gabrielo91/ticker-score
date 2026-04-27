@@ -31,6 +31,22 @@ const ONE_MINUTE_MS = 60_000;
 const DEFAULT_USER_AGENT =
   "darkscore/0.0.0 (+https://github.com/gabrielo91/ticker-score)";
 
+/**
+ * Structured Twelve Data API error. Carries the upstream `code` so callers
+ * can branch on plan-gated responses (HTTP 200 + `{status:"error", code:403}`)
+ * without string-matching the message.
+ */
+export class TwelveDataApiError extends Error {
+  readonly code: number | null;
+  readonly endpoint: string;
+  constructor(code: number | null, endpoint: string, message: string) {
+    super(message);
+    this.name = "TwelveDataApiError";
+    this.code = code;
+    this.endpoint = endpoint;
+  }
+}
+
 export interface TwelveDataClientOptions {
   /** API key. Required — the client refuses to issue requests without one. */
   readonly apiKey: string;
@@ -82,20 +98,20 @@ export class TwelveDataClient {
     );
   }
 
-  /** GET `/income_statement?symbol=...&period=annual|quarter` — statements. */
+  /** GET `/income_statement?symbol=...&period=annual|quarterly` — statements. */
   fetchIncomeStatement(
     symbol: string,
-    period: "annual" | "quarter" = "annual",
+    period: "annual" | "quarterly" = "annual",
   ): Promise<Result<unknown>> {
     return this.getJson(
       `/income_statement?symbol=${encodeURIComponent(symbol)}&period=${period}`,
     );
   }
 
-  /** GET `/balance_sheet?symbol=...&period=annual|quarter` — statements. */
+  /** GET `/balance_sheet?symbol=...&period=annual|quarterly` — statements. */
   fetchBalanceSheet(
     symbol: string,
-    period: "annual" | "quarter" = "annual",
+    period: "annual" | "quarterly" = "annual",
   ): Promise<Result<unknown>> {
     return this.getJson(
       `/balance_sheet?symbol=${encodeURIComponent(symbol)}&period=${period}`,
@@ -142,10 +158,12 @@ export class TwelveDataClient {
       }
       const errorEnvelope = TwelveDataErrorSchema.safeParse(json);
       if (errorEnvelope.success) {
-        const code = errorEnvelope.data.code;
+        const code = errorEnvelope.data.code ?? null;
         const message = errorEnvelope.data.message ?? "unknown error";
         return err(
-          new Error(
+          new TwelveDataApiError(
+            code,
+            path,
             `TwelveDataClient: API error ${code ?? "?"} on ${path}: ${message}`,
           ),
         );

@@ -34,7 +34,11 @@ import {
   type TickerSymbol,
 } from "@darkscore/types";
 import type { z } from "zod";
-import { TwelveDataClient, type TwelveDataClientOptions } from "./client.js";
+import {
+  TwelveDataApiError,
+  TwelveDataClient,
+  type TwelveDataClientOptions,
+} from "./client.js";
 import {
   TwelveDataBalanceSheetSchema,
   TwelveDataIncomeStatementSchema,
@@ -48,6 +52,8 @@ import {
   type TwelveDataStatistics,
 } from "./schemas.js";
 import {
+  emptyFinancials,
+  emptyKeyMetrics,
   transformFinancials,
   transformKeyMetrics,
   transformPriceHistory,
@@ -58,6 +64,17 @@ import {
 export const TWELVE_DATA_PROVIDER_NAME = "twelvedata";
 export const TWELVE_DATA_DEFAULT_PRIORITY = 0;
 const TRADING_DAYS_PER_MONTH = 21;
+/**
+ * Twelve Data returns HTTP 200 with `{status:"error", code:403}` for endpoints
+ * gated to paid plans (`/statistics`, `/income_statement`, `/balance_sheet`,
+ * and `/profile` for non-trial symbols on the Basic tier). When that happens
+ * we degrade gracefully instead of failing the whole report.
+ */
+const PLAN_GATED_CODE = 403;
+
+function isPlanGated(error: Error): boolean {
+  return error instanceof TwelveDataApiError && error.code === PLAN_GATED_CODE;
+}
 
 export interface TwelveDataProviderOptions extends TwelveDataClientOptions {
   readonly priority?: number;
@@ -102,7 +119,10 @@ export class TwelveDataProvider implements DataProvider {
 
   async getKeyMetrics(symbol: TickerSymbol): Promise<Result<KeyMetrics>> {
     const stats = await this.fetchStatistics(symbol);
-    if (isErr(stats)) return stats;
+    if (isErr(stats)) {
+      if (isPlanGated(stats.error)) return ok(emptyKeyMetrics());
+      return stats;
+    }
     return ok(transformKeyMetrics(stats.data));
   }
 
@@ -112,6 +132,12 @@ export class TwelveDataProvider implements DataProvider {
       this.fetchIncomeStatement(symbol, "annual"),
       this.fetchBalanceSheet(symbol),
     ]);
+    // If any gated endpoint refuses on plan grounds, return an empty
+    // Financials block so the report still renders. Other failures (network,
+    // schema, quota) propagate as errors per C5.
+    for (const r of [statsRes, incomeRes, balanceRes]) {
+      if (isErr(r) && isPlanGated(r.error)) return ok(emptyFinancials());
+    }
     if (isErr(statsRes)) return statsRes;
     if (isErr(incomeRes)) return incomeRes;
     if (isErr(balanceRes)) return balanceRes;
@@ -127,8 +153,11 @@ export class TwelveDataProvider implements DataProvider {
         new Error(`TwelveDataProvider: quarters must be > 0, got ${quarters}`),
       );
     }
-    const incomeRes = await this.fetchIncomeStatement(symbol, "quarter");
-    if (isErr(incomeRes)) return incomeRes;
+    const incomeRes = await this.fetchIncomeStatement(symbol, "quarterly");
+    if (isErr(incomeRes)) {
+      if (isPlanGated(incomeRes.error)) return ok([]);
+      return incomeRes;
+    }
     return ok(transformQuarterlyResults(incomeRes.data, Math.trunc(quarters)));
   }
 
@@ -163,7 +192,7 @@ export class TwelveDataProvider implements DataProvider {
 
   private async fetchIncomeStatement(
     symbol: TickerSymbol,
-    period: "annual" | "quarter",
+    period: "annual" | "quarterly",
   ): Promise<Result<TwelveDataIncomeStatement>> {
     const raw = await this.client.fetchIncomeStatement(symbol, period);
     if (isErr(raw)) return raw;

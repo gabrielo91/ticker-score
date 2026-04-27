@@ -30,6 +30,7 @@ export {
 } from "./providers/twelve-data/index.js";
 
 export {
+  TwelveDataApiError,
   TwelveDataClient,
   type TwelveDataClientOptions,
 } from "./providers/twelve-data/client.js";

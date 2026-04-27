@@ -96,6 +96,51 @@ export function transformTickerInfo(
   };
 }
 
+/**
+ * Empty `KeyMetrics` for plan-gated symbols where `/statistics` is forbidden.
+ * Every field is `null` so the report renders "Not available" placeholders
+ * instead of bogus zeroes.
+ */
+export function emptyKeyMetrics(): KeyMetrics {
+  return {
+    peRatioTTM: null,
+    peRatioForward: null,
+    priceToSales: null,
+    priceToBook: null,
+    evToEbitda: null,
+    evToRevenue: null,
+    pegRatio: null,
+    dividendYield: null,
+    payoutRatio: null,
+  };
+}
+
+/**
+ * Empty `Financials` for plan-gated symbols where `/income_statement`,
+ * `/balance_sheet` or `/statistics` are forbidden. Numeric required fields
+ * collapse to `0` (the schema disallows `null`); ratios/returns stay `null`.
+ */
+export function emptyFinancials(): Financials {
+  return {
+    revenueTTM: 0,
+    netIncomeTTM: 0,
+    epsTTM: 0,
+    cash: 0,
+    totalDebt: 0,
+    debtToEquity: null,
+    currentRatio: null,
+    operatingCashFlowTTM: 0,
+    freeCashFlowTTM: 0,
+    capexTTM: 0,
+    grossMargin: 0,
+    operatingMargin: 0,
+    netMargin: 0,
+    returnOnEquity: null,
+    returnOnAssets: null,
+    fiscalYear: new Date().getUTCFullYear(),
+  };
+}
+
 export function transformKeyMetrics(
   stats: TwelveDataStatistics | undefined,
 ): KeyMetrics {

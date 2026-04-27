@@ -207,5 +207,71 @@ describe("TwelveDataProvider", () => {
     expect(r.error.message).toContain("API error 404");
     expect(r.error.message).toContain("symbol not found");
   });
+
+  it("getKeyMetrics returns null-filled metrics when /statistics is plan-gated (403)", async () => {
+    const client = buildClient({
+      statistics: {
+        status: "error",
+        code: 403,
+        message: "/statistics is available exclusively with pro or ultra…",
+      },
+    });
+    const p = new TwelveDataProvider({ apiKey: "k", client });
+    const r = await p.getKeyMetrics("GOOGL");
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data.peRatioTTM).toBeNull();
+    expect(r.data.peRatioForward).toBeNull();
+    expect(r.data.priceToSales).toBeNull();
+    expect(r.data.dividendYield).toBeNull();
+  });
+
+  it("getFinancials returns empty financials when any gated endpoint is 403", async () => {
+    const gated = {
+      status: "error",
+      code: 403,
+      message: "/income_statement is available exclusively with pro or ultra…",
+    };
+    const client = buildClient({
+      statistics: { statistics: {} },
+      incomeAnnual: gated,
+      balance: { balance_sheet: [] },
+    });
+    const p = new TwelveDataProvider({ apiKey: "k", client });
+    const r = await p.getFinancials("GOOGL");
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data.revenueTTM).toBe(0);
+    expect(r.data.netIncomeTTM).toBe(0);
+    expect(r.data.debtToEquity).toBeNull();
+    expect(r.data.returnOnEquity).toBeNull();
+    expect(r.data.fiscalYear).toBeGreaterThan(0);
+  });
+
+  it("getQuarterlyResults returns [] when /income_statement is plan-gated (403)", async () => {
+    const client = buildClient({
+      incomeQuarter: {
+        status: "error",
+        code: 403,
+        message: "/income_statement is available exclusively with pro or ultra…",
+      },
+    });
+    const p = new TwelveDataProvider({ apiKey: "k", client });
+    const r = await p.getQuarterlyResults("GOOGL", 8);
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data).toEqual([]);
+  });
+
+  it("non-403 envelope errors still propagate as Result.err on gated endpoints", async () => {
+    const client = buildClient({
+      statistics: { status: "error", code: 429, message: "API credits exceeded" },
+    });
+    const p = new TwelveDataProvider({ apiKey: "k", client });
+    const r = await p.getKeyMetrics("GOOGL");
+    expect(isErr(r)).toBe(true);
+    if (!isErr(r)) return;
+    expect(r.error.message).toContain("API error 429");
+  });
 });
 
