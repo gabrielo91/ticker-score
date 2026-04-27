@@ -28,6 +28,16 @@ const BASE_URL = process.env.DARKSCORE_E2E_BASE_URL ?? "http://localhost:3000";
 const PROBE_TIMEOUT_MS = 1_500;
 const REQUEST_TIMEOUT_MS = 25_000;
 
+interface NarrativeShape {
+  readonly catalysts: readonly string[];
+  readonly risks: readonly string[];
+  readonly verdict: { readonly headline: string; readonly paragraph: string };
+  readonly disclaimer: string;
+  readonly providerName: string;
+  readonly model: string;
+  readonly generatedAt: string;
+}
+
 interface ReportSuccess {
   readonly ok: true;
   readonly data: {
@@ -41,6 +51,8 @@ interface ReportSuccess {
       readonly composite: number;
       readonly rating: string;
     };
+    readonly narrative: NarrativeShape | null;
+    readonly narrativeAvailable: boolean;
   };
 }
 
@@ -180,6 +192,118 @@ describe("e2e: /api/report/[ticker]", () => {
       if (!json.ok) {
         expect(json.error.toLowerCase()).toContain("unknown data provider");
       }
+    },
+  );
+});
+
+/**
+ * Spec 002, W4-6 — narrative layer end-to-end smoke.
+ *
+ * One smoke that proves both branches of the narrative pipeline reach the
+ * HTTP surface intact:
+ *
+ *   - When the dev server is configured for narrative
+ *     (`NARRATIVE_PROVIDER=openai` + `OPENAI_API_KEY`), the response carries
+ *     a populated `narrative` object that satisfies the `NarrativeData` shape
+ *     contract from `@darkscore/types`, and a second call to the same ticker
+ *     returns *byte-identical* narrative content (cache hit — no second LLM
+ *     call, since a fresh generation would produce a different `generatedAt`).
+ *   - When narrative is disabled or the provider failed,
+ *     `narrativeAvailable` is `false`, `narrative` is `null`, and the rest of
+ *     the report (Spec-001 layout) is intact (clean degradation).
+ *
+ * Schema-violation degradation is covered at the unit layer in
+ * `lib/narrative-runtime.test.ts` (`fails open when the provider returns an
+ * error`) — replaying it here would require injecting a fake provider into
+ * the running server, which is outside W4-6 scope.
+ */
+describe("e2e: narrative layer (W4-6)", () => {
+  it.skipIf(!serverReachable)(
+    "produces a narrative when configured, degrades cleanly when not",
+    async (ctx) => {
+      const r = await getReport("AAPL");
+      if (!r.ok) {
+        if (isProviderRateLimited(r.error)) {
+          console.warn(`[e2e] skipping — provider throttled CI: ${r.error}`);
+          ctx.skip();
+          return;
+        }
+        throw new Error(`expected ok, got error: ${r.error}`);
+      }
+
+      // Both branches: structural fields are always present and the rest of
+      // the report (Spec-001 surface) is intact regardless of narrative state.
+      expect(typeof r.data.narrativeAvailable).toBe("boolean");
+      expect(r.data.ticker.currentPrice).toBeGreaterThan(0);
+      expect(r.data.riskScore.composite).toBeGreaterThanOrEqual(0);
+      expect(r.data.riskScore.composite).toBeLessThanOrEqual(100);
+
+      if (!r.data.narrativeAvailable) {
+        // Degradation branch (no key / NARRATIVE_PROVIDER=none / failure).
+        expect(r.data.narrative).toBeNull();
+        console.warn(
+          "[e2e:W4-6] narrative disabled — degradation branch verified. " +
+            "Set NARRATIVE_PROVIDER=openai + OPENAI_API_KEY on the dev " +
+            "server to exercise the populated branch.",
+        );
+        return;
+      }
+
+      // Populated branch: validate the public NarrativeData shape contract.
+      const n = r.data.narrative;
+      if (n === null) {
+        throw new Error("narrativeAvailable=true but narrative is null");
+      }
+      expect(n.catalysts.length).toBeGreaterThanOrEqual(3);
+      expect(n.catalysts.length).toBeLessThanOrEqual(7);
+      expect(n.risks.length).toBeGreaterThanOrEqual(3);
+      expect(n.risks.length).toBeLessThanOrEqual(7);
+      for (const c of n.catalysts) expect(c.length).toBeGreaterThan(0);
+      for (const k of n.risks) expect(k.length).toBeGreaterThan(0);
+      expect(n.verdict.headline.length).toBeGreaterThan(0);
+      expect(n.verdict.paragraph.length).toBeGreaterThan(0);
+      expect(n.disclaimer.length).toBeGreaterThan(0);
+      expect(n.providerName.length).toBeGreaterThan(0);
+      expect(n.model.length).toBeGreaterThan(0);
+      expect(n.generatedAt.length).toBeGreaterThan(0);
+    },
+  );
+
+  it.skipIf(!serverReachable)(
+    "returns byte-identical narrative on a second call (cache hit)",
+    async (ctx) => {
+      const first = await getReport("AAPL");
+      if (!first.ok) {
+        if (isProviderRateLimited(first.error)) {
+          ctx.skip();
+          return;
+        }
+        throw new Error(`expected ok, got error: ${first.error}`);
+      }
+      if (!first.data.narrativeAvailable || first.data.narrative === null) {
+        console.warn(
+          "[e2e:W4-6] cache-hit assertion skipped — narrative disabled on " +
+            "the running server (no NARRATIVE_PROVIDER + OPENAI_API_KEY).",
+        );
+        ctx.skip();
+        return;
+      }
+
+      const second = await getReport("AAPL");
+      if (!second.ok || !second.data.narrativeAvailable || second.data.narrative === null) {
+        throw new Error("second call lost the narrative — cache miss?");
+      }
+
+      // Cache hit ⇒ identical generated artifact (a re-run would stamp a
+      // fresh `generatedAt` and likely produce different prose).
+      expect(second.data.narrative.generatedAt).toBe(
+        first.data.narrative.generatedAt,
+      );
+      expect(second.data.narrative.providerName).toBe(
+        first.data.narrative.providerName,
+      );
+      expect(second.data.narrative.model).toBe(first.data.narrative.model);
+      expect(second.data.narrative).toEqual(first.data.narrative);
     },
   );
 });
