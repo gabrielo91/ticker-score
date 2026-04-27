@@ -25,6 +25,7 @@ export class RateLimiter {
   }
 
   async acquire(now: () => number = Date.now): Promise<void> {
+    // eslint-disable-next-line no-constant-condition -- intentional polling loop with internal returns
     while (true) {
       const t = now();
       while (this.hits.length > 0 && (this.hits[0] ?? 0) <= t - this.windowMs) {

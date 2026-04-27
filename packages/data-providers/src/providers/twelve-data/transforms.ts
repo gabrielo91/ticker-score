@@ -27,7 +27,6 @@ import type {
 } from "@darkscore/types";
 import type {
   TwelveDataBalanceSheet,
-  TwelveDataBalanceSheetEntry,
   TwelveDataIncomeStatement,
   TwelveDataIncomeStatementEntry,
   TwelveDataProfile,
