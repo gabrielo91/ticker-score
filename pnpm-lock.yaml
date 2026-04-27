@@ -139,6 +139,22 @@ importers:
         specifier: ^5.5.3
         version: 5.9.3
 
+  packages/narrative:
+    dependencies:
+      '@darkscore/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@darkscore/types':
+        specifier: workspace:*
+        version: link:../types
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@20.19.39)
+
   packages/scoring-engine:
     dependencies:
       '@darkscore/types':
