@@ -83,6 +83,7 @@ export function getNarrativeRuntime(): NarrativeRuntime {
   const g = globalThis as GlobalWithRuntime;
   const cached = g[GLOBAL_KEY];
   if (cached !== undefined) return cached;
+  console.log("[narrative-runtime] building runtime. NARRATIVE_PROVIDER =", process.env.NARRATIVE_PROVIDER, "OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
   const runtime = buildNarrativeRuntime({
     NARRATIVE_PROVIDER: process.env.NARRATIVE_PROVIDER,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -125,7 +126,10 @@ export async function runNarrative(
   input: NarrativeInput,
   logger: Logger = defaultLogger(),
 ): Promise<NarrativeCallResult> {
-  if (provider === null) return FAIL_OPEN;
+  if (provider === null) {
+    console.log("[narrative-runtime] provider is null, returning FAIL_OPEN");
+    return FAIL_OPEN;
+  }
 
   const key = buildNarrativeCacheKey({
     providerName: provider.name,

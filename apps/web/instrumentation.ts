@@ -18,6 +18,7 @@ declare const __non_webpack_require__: NodeRequire;
 
 export function register(): void {
   if (process.env.NEXT_RUNTIME === "edge") return;
+  console.log("[instrumentation] register() called. NEXT_RUNTIME =", process.env.NEXT_RUNTIME);
   const fs = __non_webpack_require__("fs") as typeof import("fs");
   const path = __non_webpack_require__("path") as typeof import("path");
 
@@ -35,5 +36,6 @@ export function register(): void {
     const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/gu, "");
     if (process.env[key] === undefined) process.env[key] = value;
   }
+  console.log("[instrumentation] register() completed. NARRATIVE_PROVIDER =", process.env.NARRATIVE_PROVIDER, "OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
 }
 
