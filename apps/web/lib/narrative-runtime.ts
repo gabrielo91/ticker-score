@@ -88,7 +88,11 @@ export function getNarrativeRuntime(): NarrativeRuntime {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NARRATIVE_MODEL: process.env.NARRATIVE_MODEL,
   });
-  g[GLOBAL_KEY] = runtime;
+  // Only cache if provider was successfully built — if env vars weren't
+  // available yet (e.g., instrumentation.ts hasn't run), we retry next call.
+  if (runtime.provider !== null) {
+    g[GLOBAL_KEY] = runtime;
+  }
   return runtime;
 }
 
