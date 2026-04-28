@@ -25,7 +25,13 @@ if (existsSync(rootEnvPath)) {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  // Required in Next.js 14 so `instrumentation.ts` runs in every worker.
+  // Without this, dev-mode API route workers skip the env hydration above
+  // and lose NARRATIVE_PROVIDER / OPENAI_API_KEY.
+  experimental: {
+    instrumentationHook: true
+  }
 };
 
 export default nextConfig;
