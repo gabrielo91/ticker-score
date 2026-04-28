@@ -5,8 +5,9 @@
 // (CI secrets, shell exports) take precedence — we never overwrite.
 //
 // `instrumentation.ts` is bundled by Next.js, so `import.meta.url` is not
-// reliable. We resolve from `process.cwd()`, which Next.js sets to the app
-// directory (`apps/web`) for both `next dev` and `next start`.
+// reliable. We resolve from `process.cwd()`, which can be either the monorepo
+// root (when launched via `pnpm --filter @darkscore/web dev`) or `apps/web`
+// (when launched directly). We try both candidate paths to cover both cases.
 //
 // We only run on the Node.js runtime; Edge has no filesystem. We also use
 // Webpack's `__non_webpack_require__` escape hatch so that `fs`/`path` are
@@ -20,9 +21,11 @@ export function register(): void {
   const fs = __non_webpack_require__("fs") as typeof import("fs");
   const path = __non_webpack_require__("path") as typeof import("path");
 
-  const rootEnvPath = path.resolve(process.cwd(), "../../.env");
-  if (!fs.existsSync(rootEnvPath)) return;
-  const text = fs.readFileSync(rootEnvPath, "utf8");
+  const rootEnvPath = path.resolve(process.cwd(), ".env");
+  const altEnvPath = path.resolve(process.cwd(), "../../.env");
+  const envPath = fs.existsSync(rootEnvPath) ? rootEnvPath : altEnvPath;
+  if (!fs.existsSync(envPath)) return;
+  const text = fs.readFileSync(envPath, "utf8");
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (trimmed === "" || trimmed.startsWith("#")) continue;
