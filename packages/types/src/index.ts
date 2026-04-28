@@ -11,5 +11,6 @@ export * from "./financials.js";
 export * from "./score.js";
 export * from "./provider.js";
 export * from "./narrative.js";
+export * from "./source-attribution.js";
 export * from "./report.js";
 

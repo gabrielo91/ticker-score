@@ -15,8 +15,6 @@
  */
 import type { ReportData } from "@darkscore/types";
 import { generateReport } from "@/lib/report-generator";
-import { resolveProviderId } from "@/lib/providers";
-import { ProviderSelector } from "@/components/report/ProviderSelector";
 import { TickerBar } from "@/components/report/TickerBar";
 import { CompanyAbout } from "@/components/report/CompanyAbout";
 import { HowItWorks } from "@/components/report/HowItWorks";
@@ -33,33 +31,27 @@ import { ClipboardExport } from "@/components/report/ClipboardExport";
 
 interface PageProps {
   readonly params: { readonly ticker: string };
-  readonly searchParams?: { readonly provider?: string };
 }
 
 export default async function ReportPage({
   params,
-  searchParams,
 }: PageProps): Promise<JSX.Element> {
-  const provider = resolveProviderId(searchParams?.provider);
-  const result = await generateReport(params.ticker, { provider });
+  const result = await generateReport(params.ticker);
   if (!result.ok) {
     return (
       <ErrorScreen
         ticker={params.ticker}
         message={result.error.message}
-        provider={provider}
       />
     );
   }
-  return <ReportView report={result.data} provider={provider} />;
+  return <ReportView report={result.data} />;
 }
 
 function ReportView({
   report,
-  provider,
 }: {
   report: ReportData;
-  provider: string;
 }): JSX.Element {
   const latestQuarter = report.quarterlyResults[0];
   const fundamentalsAvailable = report.fundamentalsAvailable;
@@ -68,7 +60,6 @@ function ReportView({
       <div className="max-w-[1080px] mx-auto space-y-6">
         {/* PAGE 1 — Snapshot & Score */}
         <section className="page space-y-6" aria-label="Snapshot and score">
-          <ProviderSelector currentProvider={provider} />
           <HowItWorks />
           <TickerBar ticker={report.ticker} />
           <CompanyAbout ticker={report.ticker} />
@@ -92,7 +83,7 @@ function ReportView({
             </div>
           ) : (
             <>
-              <FundamentalsUnavailableNotice provider={provider} />
+              <FundamentalsUnavailableNotice />
               <PriceChart chart={report.priceChart} />
             </>
           )}
@@ -144,11 +135,7 @@ function ReportView({
   );
 }
 
-function FundamentalsUnavailableNotice({
-  provider,
-}: {
-  provider: string;
-}): JSX.Element {
+function FundamentalsUnavailableNotice(): JSX.Element {
   return (
     <div
       role="status"
@@ -158,14 +145,12 @@ function FundamentalsUnavailableNotice({
         Score unavailable for this ticker
       </p>
       <p className="text-text-muted">
-        The current data source (
-        <code className="font-mono text-accent-amber">{provider}</code>) did not
-        return fundamentals (income statement, balance sheet, or key metrics)
-        for this symbol — usually because the endpoint is restricted on the
-        free tier. The price chart still reflects live market data, but the
+        Our data sources did not return fundamentals (income statement,
+        balance sheet, or key metrics) for this symbol — usually because the
+        endpoint is restricted on the free tier across every configured
+        provider. The price chart still reflects live market data, but the
         risk gauge, score breakdown, and verdict are hidden so we don&apos;t
-        publish a rating computed from missing inputs. Try a different data
-        source from the selector above.
+        publish a rating computed from missing inputs.
       </p>
     </div>
   );
@@ -174,27 +159,20 @@ function FundamentalsUnavailableNotice({
 function ErrorScreen({
   ticker,
   message,
-  provider,
 }: {
   ticker: string;
   message: string;
-  provider: string;
 }): JSX.Element {
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-10">
       <div className="max-w-3xl mx-auto space-y-4">
-        <ProviderSelector currentProvider={provider} />
         <h1 className="text-3xl font-semibold mb-2">Report unavailable</h1>
         <p className="text-text-muted mb-6">
           Could not generate a report for{" "}
           <code className="px-1.5 py-0.5 rounded bg-darkscore-card text-accent-amber font-mono">
             {ticker.toUpperCase()}
-          </code>{" "}
-          using{" "}
-          <code className="px-1.5 py-0.5 rounded bg-darkscore-card text-accent-amber font-mono">
-            {provider}
           </code>
-          . Try switching the data source above.
+          .
         </p>
         <pre className="whitespace-pre-wrap rounded-card border border-darkscore-border bg-darkscore-card p-4 text-sm status-red">
           {message}
