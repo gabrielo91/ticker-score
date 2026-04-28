@@ -16,7 +16,7 @@
 declare const __non_webpack_require__: NodeRequire;
 
 export function register(): void {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  if (process.env.NEXT_RUNTIME === "edge") return;
   const fs = __non_webpack_require__("fs") as typeof import("fs");
   const path = __non_webpack_require__("path") as typeof import("path");
 
