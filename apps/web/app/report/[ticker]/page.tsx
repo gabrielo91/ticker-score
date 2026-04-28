@@ -58,6 +58,7 @@ function ReportView({
   const latestQuarter = report.quarterlyResults[0];
   const fundamentalsAvailable = report.fundamentalsAvailable;
   const aiForwardConfidence = pickFwdPeAiConfidence(report);
+  const narrative = report.narrative ?? null;
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-8">
       <div className="max-w-[1080px] mx-auto space-y-6">
@@ -65,7 +66,11 @@ function ReportView({
         <section className="page space-y-6" aria-label="Snapshot and score">
           <HowItWorks />
           <TickerBar ticker={report.ticker} />
-          <CompanyAbout ticker={report.ticker} />
+          <CompanyAbout
+            ticker={report.ticker}
+            companyOverview={narrative?.companyOverview ?? null}
+            recentDevelopments={narrative?.recentDevelopments ?? null}
+          />
           {fundamentalsAvailable ? (
             <KPIStrip
               keyMetrics={report.keyMetrics}
@@ -110,19 +115,28 @@ function ReportView({
             className="page page-break space-y-6"
             aria-label="Deep dive and verdict"
           >
-            <QuarterlyTable quarters={report.quarterlyResults} />
+            <QuarterlyTable
+              quarters={report.quarterlyResults}
+              insight={narrative?.quarterlyInsight ?? undefined}
+            />
             {latestQuarter !== undefined ? (
-              <EarningsUpdate latestQuarter={latestQuarter} />
+              <EarningsUpdate
+                latestQuarter={latestQuarter}
+                earningsContext={narrative?.earningsContext ?? null}
+              />
             ) : null}
             <CatalystsRisks
               catalysts={report.catalysts}
               risks={report.risks}
+              catalystsDetailed={narrative?.catalystsDetailed ?? null}
+              risksDetailed={narrative?.risksDetailed ?? null}
             />
             <Verdict
               verdict={report.verdict}
               riskScore={report.riskScore}
-              headline={report.narrative?.verdict.headline}
-              disclaimer={report.narrative?.disclaimer}
+              headline={narrative?.verdict.headline}
+              disclaimer={narrative?.disclaimer}
+              bottomLine={narrative?.verdict.bottomLine ?? undefined}
             />
           </section>
         ) : null}

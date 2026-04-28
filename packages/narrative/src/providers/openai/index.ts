@@ -16,11 +16,15 @@
  * model's JSON output.
  */
 import {
+  CatalystItemSchema,
   ForwardEstimatesSchema,
   NarrativeDataSchema,
+  NarrativeEarningsContextSchema,
+  NarrativeSegmentSchema,
   err,
   isErr,
   ok,
+  type CatalystItem,
   type NarrativeData,
   type NarrativeInput,
   type NarrativeProvider,
@@ -103,7 +107,11 @@ export class OpenAINarrativeProvider implements NarrativeProvider {
       );
     }
 
-    const candidate = this.attachMetadata(this.salvageForwardEstimates(parsedJson));
+    const candidate = this.attachMetadata(
+      this.salvageOptionalFields(
+        this.salvageCatalystsRisks(this.salvageForwardEstimates(parsedJson)),
+      ),
+    );
     const parsed = NarrativeDataSchema.safeParse(candidate);
     if (!parsed.success) {
       return err(
@@ -155,6 +163,65 @@ export class OpenAINarrativeProvider implements NarrativeProvider {
     return { ...base, forwardEstimates: parsed.success ? parsed.data : null };
   }
 
+  /**
+   * W6-1: the new prompt asks for catalysts/risks as
+   * `[{ text, basis }]`. The legacy schema (and old recorded fixtures) keep
+   * `catalysts: string[]` for backward compatibility. This salvage step
+   * accepts either shape:
+   *   - if items are `string`, leave `catalysts` unchanged and set
+   *     `catalystsDetailed: null`;
+   *   - if items are `{ text, basis }` objects, populate both: `catalysts`
+   *     becomes the list of `.text` strings (so the legacy schema passes)
+   *     and `catalystsDetailed` carries the full object array.
+   * Mixed or malformed shapes drop `catalystsDetailed` to `null` and leave
+   * the parent schema validation to reject the request if `catalysts` is
+   * also unrecoverable.
+   */
+  private salvageCatalystsRisks(content: unknown): unknown {
+    if (typeof content !== "object" || content === null) return content;
+    const base = content as Record<string, unknown>;
+    const cat = normalizeCatalystField(base.catalysts);
+    const risk = normalizeCatalystField(base.risks);
+    return {
+      ...base,
+      catalysts: cat.flat,
+      catalystsDetailed: cat.detailed,
+      risks: risk.flat,
+      risksDetailed: risk.detailed,
+    };
+  }
+
+  /**
+   * W6-1: every new top-level field (`companyOverview`, `recentDevelopments`,
+   * `quarterlyInsight`, `earningsContext`, `segments`, `verdict.bottomLine`)
+   * is optional. If the model returned a value that fails its sub-schema we
+   * drop it to `null` rather than rejecting the whole narrative. The
+   * existing required fields still go through `NarrativeDataSchema` below.
+   */
+  private salvageOptionalFields(content: unknown): unknown {
+    if (typeof content !== "object" || content === null) return content;
+    const base = content as Record<string, unknown>;
+    const earnings = base.earningsContext;
+    const segments = base.segments;
+    const earningsParsed =
+      earnings === undefined || earnings === null
+        ? null
+        : (NarrativeEarningsContextSchema.safeParse(earnings).data ?? null);
+    const segmentsParsed = Array.isArray(segments)
+      ? segments
+          .map((s) => NarrativeSegmentSchema.safeParse(s))
+          .filter((r): r is { success: true; data: { name: string; insight: string } } =>
+            r.success,
+          )
+          .map((r) => r.data)
+      : null;
+    return {
+      ...base,
+      earningsContext: earningsParsed,
+      segments: segmentsParsed === null || segmentsParsed.length === 0 ? null : segmentsParsed,
+    };
+  }
+
   private mapClientError(e: OpenAIClientError): NarrativeError {
     switch (e.kind) {
       case "auth":
@@ -174,5 +241,42 @@ export function createOpenAINarrativeProvider(
   options: OpenAINarrativeProviderOptions,
 ): OpenAINarrativeProvider {
   return new OpenAINarrativeProvider(options);
+}
+
+/**
+ * W6-1: collapse a `catalysts`/`risks` field to its two-shape representation.
+ * Returns the legacy `string[]` (always — required by `NarrativeDataSchema`)
+ * and the optional detailed `CatalystItem[]` when the input came as objects.
+ */
+function normalizeCatalystField(raw: unknown): {
+  flat: unknown;
+  detailed: CatalystItem[] | null;
+} {
+  if (!Array.isArray(raw)) return { flat: raw, detailed: null };
+  const stringItems: string[] = [];
+  const detailedItems: CatalystItem[] = [];
+  let anyObject = false;
+  for (const item of raw) {
+    if (typeof item === "string") {
+      stringItems.push(item);
+      continue;
+    }
+    if (typeof item === "object" && item !== null) {
+      anyObject = true;
+      const parsed = CatalystItemSchema.safeParse(item);
+      if (parsed.success) {
+        detailedItems.push(parsed.data);
+        stringItems.push(parsed.data.text);
+      }
+    }
+  }
+  if (!anyObject) {
+    // Pure string[] → leave as-is, no detailed field.
+    return { flat: raw, detailed: null };
+  }
+  return {
+    flat: stringItems,
+    detailed: detailedItems.length > 0 ? detailedItems : null,
+  };
 }
 

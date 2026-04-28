@@ -5,11 +5,17 @@
  *
  * Pure presentational (C12); formatting lives in private helpers above JSX.
  */
-import type { QuarterlyResult } from "@darkscore/types";
+import type { NarrativeEarningsContext, QuarterlyResult } from "@darkscore/types";
 
 interface EarningsUpdateProps {
   readonly latestQuarter: QuarterlyResult;
   readonly guidance?: string;
+  /**
+   * W6-1: optional narrative-supplied earnings context (headline,
+   * beats/misses bullets, forward guidance). Rendered alongside the
+   * structured numbers when present; absent when no narrative is available.
+   */
+  readonly earningsContext?: NarrativeEarningsContext | null;
 }
 
 const REVENUE_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -28,13 +34,24 @@ function formatPercent(value: number): string {
 export function EarningsUpdate({
   latestQuarter,
   guidance,
+  earningsContext,
 }: EarningsUpdateProps): JSX.Element {
   const yoyPositive = latestQuarter.revenueGrowthYoYPercent >= 0;
+  const ctxGuidance = earningsContext?.guidance ?? null;
+  const effectiveGuidance =
+    guidance !== undefined && guidance.length > 0
+      ? guidance
+      : ctxGuidance ?? undefined;
   return (
     <section className="rounded-xl border border-zinc-800 bg-[#11131a] p-6 mb-6">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-[#f0f0f0] mb-4">
         Latest Earnings
       </h2>
+      {earningsContext !== undefined && earningsContext !== null ? (
+        <p className="text-sm font-semibold text-[#f0f0f0] mb-4 leading-snug">
+          {earningsContext.headline}
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <h3 className="text-sm font-semibold text-[#f0f0f0] mb-3">
@@ -66,12 +83,14 @@ export function EarningsUpdate({
             </div>
           </dl>
         </div>
-        {guidance !== undefined && guidance.length > 0 ? (
+        {earningsContext !== undefined && earningsContext !== null ? (
+          <BeatsMisses ctx={earningsContext} />
+        ) : effectiveGuidance !== undefined && effectiveGuidance.length > 0 ? (
           <div>
             <h3 className="text-sm font-semibold text-[#f0f0f0] mb-3">
               Forward Guidance
             </h3>
-            <p className="text-sm leading-relaxed text-[#8a8f98]">{guidance}</p>
+            <p className="text-sm leading-relaxed text-[#8a8f98]">{effectiveGuidance}</p>
           </div>
         ) : null}
       </div>
@@ -81,6 +100,45 @@ export function EarningsUpdate({
         </p>
       ) : null}
     </section>
+  );
+}
+
+function BeatsMisses({ ctx }: { ctx: NarrativeEarningsContext }): JSX.Element {
+  return (
+    <div className="space-y-3">
+      {ctx.beats.length > 0 ? (
+        <div>
+          <h3 className="text-xs uppercase tracking-wider text-[#00dc82] mb-2">
+            Beats
+          </h3>
+          <ul className="space-y-1 text-sm text-[#f0f0f0]">
+            {ctx.beats.map((b, i) => (
+              <li key={`beat-${i}`}>• {b}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {ctx.misses.length > 0 ? (
+        <div>
+          <h3 className="text-xs uppercase tracking-wider text-[#ff4757] mb-2">
+            Misses
+          </h3>
+          <ul className="space-y-1 text-sm text-[#f0f0f0]">
+            {ctx.misses.map((m, i) => (
+              <li key={`miss-${i}`}>• {m}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {ctx.guidance !== null && ctx.guidance.length > 0 ? (
+        <div>
+          <h3 className="text-xs uppercase tracking-wider text-[#8a8f98] mb-2">
+            Guidance
+          </h3>
+          <p className="text-sm leading-relaxed text-[#8a8f98]">{ctx.guidance}</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
