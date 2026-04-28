@@ -9,12 +9,32 @@ import type { TickerInfo } from "@darkscore/types";
 
 interface CompanyAboutProps {
   readonly ticker: TickerInfo;
+  /**
+   * W6-1: optional narrative-supplied 2-3 sentence overview. When present it
+   * supersedes `TickerInfo.description` so the reader sees a strategic
+   * snapshot rather than the raw provider profile blurb.
+   */
+  readonly companyOverview?: string | null;
+  /**
+   * W6-1: optional 3-5 short bullet points for recent developments
+   * (product launches, earnings, regulatory). Rendered as a muted list
+   * below the overview.
+   */
+  readonly recentDevelopments?: ReadonlyArray<string> | null;
 }
 
-export function CompanyAbout({ ticker }: CompanyAboutProps): JSX.Element | null {
-  if (ticker.description === null || ticker.description.trim().length === 0) {
-    return null;
-  }
+export function CompanyAbout({
+  ticker,
+  companyOverview,
+  recentDevelopments,
+}: CompanyAboutProps): JSX.Element | null {
+  const overview =
+    companyOverview !== null && companyOverview !== undefined && companyOverview.trim().length > 0
+      ? companyOverview
+      : ticker.description !== null && ticker.description.trim().length > 0
+        ? ticker.description
+        : null;
+  if (overview === null) return null;
   return (
     <section
       className="rounded-xl border border-[#1e2130] bg-[#11131a] p-5 mb-6"
@@ -30,9 +50,21 @@ export function CompanyAbout({ ticker }: CompanyAboutProps): JSX.Element | null 
           </span>
         ) : null}
       </div>
-      <p className="text-sm leading-relaxed text-[#94a3b8]">
-        {ticker.description}
-      </p>
+      <p className="text-sm leading-relaxed text-[#94a3b8]">{overview}</p>
+      {recentDevelopments !== null &&
+      recentDevelopments !== undefined &&
+      recentDevelopments.length > 0 ? (
+        <div className="mt-4 pt-4 border-t border-zinc-800">
+          <h3 className="text-xs uppercase tracking-wider text-[#8a8f98] mb-2">
+            Recent Developments
+          </h3>
+          <ul className="space-y-1 text-sm text-[#94a3b8]">
+            {recentDevelopments.map((item, i) => (
+              <li key={`dev-${i}`}>• {item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -24,6 +24,12 @@ interface VerdictProps {
    * prose when present.
    */
   readonly disclaimer?: string;
+  /**
+   * W6-1: optional one-line takeaway from the narrative (e.g. "Buy the AI
+   * infrastructure leader."). Rendered as a punchy closing line under the
+   * verdict paragraph when present.
+   */
+  readonly bottomLine?: string;
 }
 
 function formatRating(rating: Rating): string {
@@ -35,6 +41,7 @@ export function Verdict({
   riskScore,
   headline,
   disclaimer,
+  bottomLine,
 }: VerdictProps): JSX.Element {
   return (
     <section className="rounded-xl border border-zinc-800 bg-[#11131a] p-6 mb-6">
@@ -72,6 +79,11 @@ export function Verdict({
       <p className="text-sm text-[#8a8f98] leading-relaxed mb-4">
         {verdict.summary}
       </p>
+      {bottomLine !== undefined && bottomLine.length > 0 ? (
+        <p className="text-sm font-semibold text-[#f0f0f0] leading-snug mb-4">
+          {bottomLine}
+        </p>
+      ) : null}
       {disclaimer !== undefined ? (
         <p className="text-[11px] text-[#64748b] italic leading-relaxed mb-4">
           {disclaimer}

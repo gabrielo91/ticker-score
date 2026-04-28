@@ -10,6 +10,12 @@ import { NOT_AVAILABLE } from "../../lib/format";
 
 interface QuarterlyTableProps {
   readonly quarters: ReadonlyArray<QuarterlyResult>;
+  /**
+   * W6-1: optional 2-3 sentence narrative interpretation of the quarterly
+   * trend. Rendered above the table when present so the reader sees the
+   * "what does this tell me?" line before the numbers.
+   */
+  readonly insight?: string;
 }
 
 interface QuarterlyRow {
@@ -43,13 +49,19 @@ function toRow(q: QuarterlyResult): QuarterlyRow {
   };
 }
 
-export function QuarterlyTable({ quarters }: QuarterlyTableProps): JSX.Element {
+export function QuarterlyTable({
+  quarters,
+  insight,
+}: QuarterlyTableProps): JSX.Element {
   const rows = quarters.map(toRow);
   return (
     <section className="rounded-xl border border-zinc-800 bg-[#11131a] p-6 mb-6 overflow-x-auto">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-[#f0f0f0] mb-4">
         Quarterly Trend
       </h2>
+      {insight !== undefined && insight.length > 0 ? (
+        <p className="text-sm leading-relaxed text-[#8a8f98] mb-4">{insight}</p>
+      ) : null}
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wider text-[#8a8f98] border-b border-zinc-800">

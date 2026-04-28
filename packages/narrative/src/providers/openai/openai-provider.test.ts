@@ -212,6 +212,88 @@ describe("OpenAINarrativeProvider", () => {
     expect((r.data as { forwardEstimates: unknown }).forwardEstimates).toBeNull();
   });
 
+  // W6-1: catalyst/risk + optional-field salvage.
+
+  it("normalizes catalysts returned as {text,basis} objects (W6-1)", async () => {
+    const inner = innerContent(RECORDED_AAPL_RESPONSE);
+    inner.catalysts = [
+      { text: "Cloud +48% — fastest growth among hyperscalers", basis: "Q4 2025 earnings" },
+      { text: "Backlog $240B (+55% QoQ)", basis: "Q4 2025 10-K" },
+      { text: "Search resilience +14.5% YoY", basis: null },
+    ];
+    inner.risks = [
+      { text: "DOJ antitrust — remedies pending", basis: "DOJ v. Google litigation" },
+      { text: "EU $3.5B fine in Q3", basis: "EU Commission Sept 2024 decision" },
+      { text: "$175B 2026 capex", basis: "management guidance" },
+    ];
+    const p = buildProvider(envelope(inner));
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data.catalysts).toEqual([
+      "Cloud +48% — fastest growth among hyperscalers",
+      "Backlog $240B (+55% QoQ)",
+      "Search resilience +14.5% YoY",
+    ]);
+    expect(r.data.catalystsDetailed).toEqual([
+      { text: "Cloud +48% — fastest growth among hyperscalers", basis: "Q4 2025 earnings" },
+      { text: "Backlog $240B (+55% QoQ)", basis: "Q4 2025 10-K" },
+      { text: "Search resilience +14.5% YoY", basis: null },
+    ]);
+    expect(r.data.risksDetailed?.[0]?.basis).toBe("DOJ v. Google litigation");
+  });
+
+  it("leaves catalystsDetailed null when the model returned legacy string[] (W6-1)", async () => {
+    const p = buildProvider(RECORDED_AAPL_RESPONSE);
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(Array.isArray(r.data.catalysts)).toBe(true);
+    expect(r.data.catalystsDetailed ?? null).toBeNull();
+    expect(r.data.risksDetailed ?? null).toBeNull();
+  });
+
+  it("salvages optional W6-1 fields to null when malformed", async () => {
+    const inner = innerContent(RECORDED_AAPL_RESPONSE);
+    inner.earningsContext = { headline: "Q4", beats: "not-an-array" };
+    inner.segments = [{ name: "Cloud" }];
+    const p = buildProvider(envelope(inner));
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data.earningsContext ?? null).toBeNull();
+    expect(r.data.segments ?? null).toBeNull();
+  });
+
+  it("preserves valid W6-1 optional fields end-to-end", async () => {
+    const inner = innerContent(RECORDED_AAPL_RESPONSE);
+    inner.companyOverview = "Apple designs and sells consumer electronics, services, and wearables.";
+    inner.recentDevelopments = ["WWDC 2025", "Vision Pro launch", "Q1 2026 beat"];
+    inner.quarterlyInsight = "Revenue trend stable with margin expansion through services mix.";
+    inner.earningsContext = {
+      headline: "Q1 2026: Revenue $100B (+5%) — beat",
+      beats: ["Services +15%"],
+      misses: ["iPhone -2%"],
+      guidance: null,
+    };
+    inner.segments = [
+      { name: "Services", insight: "Highest-margin growth driver." },
+      { name: "iPhone", insight: "Hardware refresh cycle approaching." },
+    ];
+    const v = inner.verdict as Record<string, unknown>;
+    v.bottomLine = "Buy the services compounder.";
+    const p = buildProvider(envelope(inner));
+    const r = await p.generate(buildNarrativeInputFixture());
+    expect(isOk(r)).toBe(true);
+    if (!isOk(r)) return;
+    expect(r.data.companyOverview).toContain("Apple");
+    expect(r.data.recentDevelopments?.length).toBe(3);
+    expect(r.data.quarterlyInsight).toBeTruthy();
+    expect(r.data.earningsContext?.headline).toContain("Q1 2026");
+    expect(r.data.segments?.length).toBe(2);
+    expect(r.data.verdict.bottomLine).toBe("Buy the services compounder.");
+  });
+
   it("salvages forwardEstimates to null when the model returns a malformed object", async () => {
     const inner = innerContent(RECORDED_AAPL_RESPONSE);
     // Confidence must be an enum, "definitely" is invalid → ForwardEstimatesSchema rejects.
