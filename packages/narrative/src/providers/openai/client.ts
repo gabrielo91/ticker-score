@@ -16,8 +16,8 @@
 import { err, ok, type Result } from "@darkscore/types";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_TOKENS = 1_400;
+const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_TEMPERATURE = 0.2;
 
 export type OpenAIErrorKind = "auth" | "rate_limited" | "timeout" | "transport";
