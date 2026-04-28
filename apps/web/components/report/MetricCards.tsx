@@ -6,6 +6,7 @@
  */
 import type { DataCard } from "@darkscore/types";
 import { STATUS_BORDER, STATUS_VALUE, dominantStatus } from "./MetricCards.helpers";
+import { AIBadge, parseAiNote } from "./AIBadge";
 
 interface MetricCardsProps {
   readonly title: string;
@@ -36,6 +37,7 @@ export function MetricCards({ title, cards }: MetricCardsProps): JSX.Element {
                   item.status !== null
                     ? STATUS_VALUE[item.status]
                     : "text-[#f0f0f0]";
+                const { confidence } = parseAiNote(item.note);
                 return (
                   <div
                     key={item.label}
@@ -44,6 +46,9 @@ export function MetricCards({ title, cards }: MetricCardsProps): JSX.Element {
                     <span className="text-[#94a3b8]">{item.label}</span>
                     <span className={`font-mono font-semibold ${valueClass}`}>
                       {item.value}
+                      {confidence !== null ? (
+                        <AIBadge confidence={confidence} />
+                      ) : null}
                     </span>
                   </div>
                 );

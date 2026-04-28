@@ -45,6 +45,7 @@ import {
   type DataCard,
   type DataPoint,
   type Financials,
+  type ForwardEstimateConfidence,
   type ForwardEstimates,
   type GrowthData,
   type KeyMetrics,
@@ -61,6 +62,19 @@ import {
   type TickerSymbol,
 } from "@darkscore/types";
 import { NOT_AVAILABLE } from "./format";
+
+/**
+ * W5-3: sentinel encoded in `DataPoint.note` to flag forward-looking values
+ * that were backfilled from the LLM by `applyForwardKeyMetrics` /
+ * `applyForwardGrowth`. The presentational layer parses this prefix to
+ * render an inline "AI est." badge — the marker is server-side only and
+ * never displayed verbatim. Keep in sync with `parseAiNote` in
+ * `components/report/AIBadge.tsx`.
+ */
+const AI_NOTE_PREFIX = "__ai__:";
+function aiNote(confidence: ForwardEstimateConfidence): string {
+  return `${AI_NOTE_PREFIX}${confidence}`;
+}
 
 const PRICE_HISTORY_MONTHS = 12;
 const QUARTERLY_HISTORY_QUARTERS = 8;
@@ -171,17 +185,31 @@ export async function generateReport(
   // W5-2: backfill forward-looking metrics from the narrative ONLY where the
   // upstream data provider returned `null`. Real provider data always wins
   // over LLM estimates — the LLM is the fallback, never the override.
+  // W5-3: track which forward fields were AI-filled so the cards can carry
+  // a sentinel `note` (parsed downstream into an "AI est." badge).
   const narrativeForward = pickForwardEstimates(narrativeOutcome.narrative);
-  const enrichedKeyMetrics = applyForwardKeyMetrics(keyMetrics, narrativeForward);
-  const enrichedGrowth = applyForwardGrowth(growth, narrativeForward);
+  const aiConfidence: ForwardEstimateConfidence | null =
+    narrativeForward !== null ? narrativeForward.confidenceLevel : null;
+  const keyMetricsApply = applyForwardKeyMetrics(keyMetrics, narrativeForward);
+  const growthApply = applyForwardGrowth(growth, narrativeForward);
+  const enrichedKeyMetrics = keyMetricsApply.metrics;
+  const enrichedGrowth = growthApply.growth;
 
   const report: ReportData = {
     ticker: tickerInfo,
     priceChart: { points: priceHistory, annotations: [] },
     kpiStrip: buildKpiStrip(tickerInfo, enrichedKeyMetrics),
-    valuationCards: buildValuationCards(enrichedKeyMetrics),
+    valuationCards: buildValuationCards(
+      enrichedKeyMetrics,
+      keyMetricsApply.aiFields,
+      aiConfidence,
+    ),
     financialHealthCards: buildFinancialHealthCards(financials),
-    growthCards: buildGrowthCards(enrichedGrowth),
+    growthCards: buildGrowthCards(
+      enrichedGrowth,
+      growthApply.aiFields,
+      aiConfidence,
+    ),
     financials,
     keyMetrics: enrichedKeyMetrics,
     growth: enrichedGrowth,
@@ -298,13 +326,19 @@ function buildKpiStrip(info: TickerInfo, metrics: KeyMetrics): KpiHighlight[] {
   return items;
 }
 
-function buildValuationCards(metrics: KeyMetrics): DataCard[] {
+function buildValuationCards(
+  metrics: KeyMetrics,
+  aiFields: ReadonlySet<keyof KeyMetrics>,
+  confidence: ForwardEstimateConfidence | null,
+): DataCard[] {
+  const fwdNote =
+    aiFields.has("peRatioForward") && confidence !== null ? aiNote(confidence) : null;
   const peCard: DataCard = {
     title: "P/E Ratio",
     subtitle: null,
     items: [
       point("TTM P/E", metrics.peRatioTTM, (v) => `${v.toFixed(1)}x`),
-      point("Forward P/E", metrics.peRatioForward, (v) => `${v.toFixed(1)}x`),
+      point("Forward P/E", metrics.peRatioForward, (v) => `${v.toFixed(1)}x`, fwdNote),
       point("PEG", metrics.pegRatio, (v) => `${v.toFixed(2)}x`),
     ],
   };
@@ -362,13 +396,24 @@ function buildFinancialHealthCards(fin: Financials): DataCard[] {
   return [balanceCard, cashFlowCard, profitabilityCard];
 }
 
-function buildGrowthCards(growth: GrowthData): DataCard[] {
+function buildGrowthCards(
+  growth: GrowthData,
+  aiFields: ReadonlySet<keyof GrowthData>,
+  confidence: ForwardEstimateConfidence | null,
+): DataCard[] {
+  const aiFor = (field: keyof GrowthData): string | null =>
+    aiFields.has(field) && confidence !== null ? aiNote(confidence) : null;
   const revenueCard: DataCard = {
     title: "Revenue Growth",
     subtitle: null,
     items: [
       point("Revenue YoY", growth.revenueGrowthYoY, (v) => `${v.toFixed(1)}%`),
-      point("Revenue Fwd", growth.revenueGrowthForward, (v) => `${v.toFixed(1)}%`),
+      point(
+        "Revenue Fwd",
+        growth.revenueGrowthForward,
+        (v) => `${v.toFixed(1)}%`,
+        aiFor("revenueGrowthForward"),
+      ),
     ],
   };
   const earningsCard: DataCard = {
@@ -376,8 +421,18 @@ function buildGrowthCards(growth: GrowthData): DataCard[] {
     subtitle: null,
     items: [
       point("Earnings YoY", growth.earningsGrowthYoY, (v) => `${v.toFixed(1)}%`),
-      point("Earnings Fwd", growth.earningsGrowthForward, (v) => `${v.toFixed(1)}%`),
-      point("EBITDA Fwd", growth.ebitdaGrowthForward, (v) => `${v.toFixed(1)}%`),
+      point(
+        "Earnings Fwd",
+        growth.earningsGrowthForward,
+        (v) => `${v.toFixed(1)}%`,
+        aiFor("earningsGrowthForward"),
+      ),
+      point(
+        "EBITDA Fwd",
+        growth.ebitdaGrowthForward,
+        (v) => `${v.toFixed(1)}%`,
+        aiFor("ebitdaGrowthForward"),
+      ),
     ],
   };
   const segmentsCard: DataCard = {
@@ -443,12 +498,13 @@ function point(
   label: string,
   value: number | null,
   format: (v: number) => string,
+  note: string | null = null,
 ): DataPoint {
   return {
     label,
     value: value !== null ? format(value) : NOT_AVAILABLE,
     status: null,
-    note: null,
+    note,
   };
 }
 
@@ -549,42 +605,61 @@ function pickForwardEstimates(
   return narrative === null ? null : narrative.forwardEstimates;
 }
 
+interface KeyMetricsFillResult {
+  readonly metrics: KeyMetrics;
+  readonly aiFields: ReadonlySet<keyof KeyMetrics>;
+}
+
+interface GrowthFillResult {
+  readonly growth: GrowthData;
+  readonly aiFields: ReadonlySet<keyof GrowthData>;
+}
+
 /**
  * W5-2: backfill `KeyMetrics.peRatioForward` only when the upstream provider
  * returned `null`. Real provider data always wins over LLM estimates.
+ *
+ * W5-3: also returns the set of fields that were AI-filled so the cards can
+ * mark them with an "AI est." badge sentinel.
  */
 function applyForwardKeyMetrics(
   base: KeyMetrics,
   forward: ForwardEstimates | null,
-): KeyMetrics {
-  if (forward === null) return base;
-  if (base.peRatioForward !== null || forward.forwardPE === null) return base;
-  return { ...base, peRatioForward: forward.forwardPE };
+): KeyMetricsFillResult {
+  const aiFields = new Set<keyof KeyMetrics>();
+  if (forward === null) return { metrics: base, aiFields };
+  if (base.peRatioForward !== null || forward.forwardPE === null) {
+    return { metrics: base, aiFields };
+  }
+  aiFields.add("peRatioForward");
+  return { metrics: { ...base, peRatioForward: forward.forwardPE }, aiFields };
 }
 
 /**
  * W5-2: backfill the three forward `GrowthData` slots only where the
  * upstream provider returned `null`. The LLM never overwrites a real number.
+ *
+ * W5-3: also returns the set of fields that were AI-filled.
  */
 function applyForwardGrowth(
   base: GrowthData,
   forward: ForwardEstimates | null,
-): GrowthData {
-  if (forward === null) return base;
+): GrowthFillResult {
+  const aiFields = new Set<keyof GrowthData>();
+  if (forward === null) return { growth: base, aiFields };
   const next: GrowthData = { ...base };
-  let touched = false;
   if (next.revenueGrowthForward === null && forward.revenueGrowthForward !== null) {
     next.revenueGrowthForward = forward.revenueGrowthForward;
-    touched = true;
+    aiFields.add("revenueGrowthForward");
   }
   if (next.earningsGrowthForward === null && forward.earningsGrowthForward !== null) {
     next.earningsGrowthForward = forward.earningsGrowthForward;
-    touched = true;
+    aiFields.add("earningsGrowthForward");
   }
   if (next.ebitdaGrowthForward === null && forward.ebitdaGrowthForward !== null) {
     next.ebitdaGrowthForward = forward.ebitdaGrowthForward;
-    touched = true;
+    aiFields.add("ebitdaGrowthForward");
   }
-  return touched ? next : base;
+  return aiFields.size === 0 ? { growth: base, aiFields } : { growth: next, aiFields };
 }
 
