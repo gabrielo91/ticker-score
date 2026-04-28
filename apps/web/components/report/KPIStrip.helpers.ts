@@ -3,7 +3,11 @@
  * the six headline metrics. Kept out of the component so JSX stays
  * declarative (C12).
  */
-import type { Financials, KeyMetrics } from "@darkscore/types";
+import type {
+  Financials,
+  ForwardEstimateConfidence,
+  KeyMetrics,
+} from "@darkscore/types";
 import { NOT_AVAILABLE, formatCompact } from "../../lib/format";
 
 export type KpiStatus = "green" | "amber" | "red" | null;
@@ -13,6 +17,7 @@ export interface KpiCell {
   readonly value: string;
   readonly status: KpiStatus;
   readonly note: string;
+  readonly aiConfidence: ForwardEstimateConfidence | null;
 }
 
 export const STATUS_TEXT: Record<"green" | "amber" | "red", string> = {
@@ -24,6 +29,7 @@ export const STATUS_TEXT: Record<"green" | "amber" | "red", string> = {
 export function buildCells(
   metrics: KeyMetrics,
   fin: Financials,
+  aiForwardConfidence: ForwardEstimateConfidence | null = null,
 ): ReadonlyArray<KpiCell> {
   return [
     {
@@ -31,6 +37,7 @@ export function buildCells(
       value: metrics.peRatioTTM !== null ? `${metrics.peRatioTTM.toFixed(1)}x` : NOT_AVAILABLE,
       status: peStatus(metrics.peRatioTTM),
       note: peNote(metrics.peRatioTTM),
+      aiConfidence: null,
     },
     {
       label: "Fwd P/E",
@@ -38,30 +45,36 @@ export function buildCells(
         metrics.peRatioForward !== null ? `${metrics.peRatioForward.toFixed(1)}x` : NOT_AVAILABLE,
       status: peStatus(metrics.peRatioForward),
       note: forwardPeNote(metrics.peRatioTTM, metrics.peRatioForward),
+      aiConfidence:
+        metrics.peRatioForward !== null ? aiForwardConfidence : null,
     },
     {
       label: "Revenue TTM",
       value: formatCompact(fin.revenueTTM, { prefix: "$" }),
       status: fin.revenueTTM > 0 ? "green" : "red",
       note: "Trailing 12 months",
+      aiConfidence: null,
     },
     {
       label: "Net Margin",
       value: `${(fin.netMargin * 100).toFixed(1)}%`,
       status: marginStatus(fin.netMargin),
       note: marginNote(fin.netMargin),
+      aiConfidence: null,
     },
     {
       label: "FCF TTM",
       value: formatCompact(fin.freeCashFlowTTM, { prefix: "$" }),
       status: fin.freeCashFlowTTM > 0 ? "green" : "red",
       note: fin.freeCashFlowTTM > 0 ? "Positive" : "Negative",
+      aiConfidence: null,
     },
     {
       label: "Debt/Equity",
       value: fin.debtToEquity !== null ? fin.debtToEquity.toFixed(2) : NOT_AVAILABLE,
       status: deStatus(fin.debtToEquity),
       note: deNote(fin.debtToEquity),
+      aiConfidence: null,
     },
   ];
 }

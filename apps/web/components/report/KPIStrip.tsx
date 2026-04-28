@@ -4,16 +4,28 @@
  * thresholds and cell construction live in helpers (C12: no business logic
  * in JSX); each card receives a precomputed status color class.
  */
-import type { Financials, KeyMetrics } from "@darkscore/types";
+import type {
+  Financials,
+  ForwardEstimateConfidence,
+  KeyMetrics,
+} from "@darkscore/types";
 import { STATUS_TEXT, buildCells } from "./KPIStrip.helpers";
+import { AIBadge } from "./AIBadge";
 
 interface KPIStripProps {
   readonly keyMetrics: KeyMetrics;
   readonly financials: Financials;
+  /** W5-3: confidence level when `Fwd P/E` was AI-estimated; `null` when the
+   * provider supplied the value (or no narrative is available). */
+  readonly aiForwardConfidence?: ForwardEstimateConfidence | null;
 }
 
-export function KPIStrip({ keyMetrics, financials }: KPIStripProps): JSX.Element {
-  const cells = buildCells(keyMetrics, financials);
+export function KPIStrip({
+  keyMetrics,
+  financials,
+  aiForwardConfidence = null,
+}: KPIStripProps): JSX.Element {
+  const cells = buildCells(keyMetrics, financials, aiForwardConfidence);
   return (
     <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
       {cells.map((cell) => {
@@ -29,6 +41,9 @@ export function KPIStrip({ keyMetrics, financials }: KPIStripProps): JSX.Element
             </div>
             <div className={`font-mono text-lg font-bold ${colorClass}`}>
               {cell.value}
+              {cell.aiConfidence !== null ? (
+                <AIBadge confidence={cell.aiConfidence} />
+              ) : null}
             </div>
             <div className={`text-[10px] mt-1 ${colorClass}`}>{cell.note}</div>
           </div>

@@ -13,7 +13,7 @@
  * Until W3-2/3 PRs merge, the imports point at lightweight stubs in
  * `apps/web/components/report/` so the page builds and types end-to-end.
  */
-import type { ReportData } from "@darkscore/types";
+import type { ForwardEstimateConfidence, ReportData } from "@darkscore/types";
 import { generateReport } from "@/lib/report-generator";
 import { TickerBar } from "@/components/report/TickerBar";
 import { CompanyAbout } from "@/components/report/CompanyAbout";
@@ -28,6 +28,8 @@ import { EarningsUpdate } from "@/components/report/EarningsUpdate";
 import { CatalystsRisks } from "@/components/report/CatalystsRisks";
 import { Verdict } from "@/components/report/Verdict";
 import { ClipboardExport } from "@/components/report/ClipboardExport";
+import { SourceFooter } from "@/components/report/SourceFooter";
+import { parseAiNote } from "@/components/report/AIBadge";
 
 interface PageProps {
   readonly params: { readonly ticker: string };
@@ -55,6 +57,7 @@ function ReportView({
 }): JSX.Element {
   const latestQuarter = report.quarterlyResults[0];
   const fundamentalsAvailable = report.fundamentalsAvailable;
+  const aiForwardConfidence = pickFwdPeAiConfidence(report);
   return (
     <main className="min-h-screen bg-darkscore-bg text-text-primary px-6 py-8">
       <div className="max-w-[1080px] mx-auto space-y-6">
@@ -67,6 +70,7 @@ function ReportView({
             <KPIStrip
               keyMetrics={report.keyMetrics}
               financials={report.financials}
+              aiForwardConfidence={aiForwardConfidence}
             />
           ) : null}
           {fundamentalsAvailable ? (
@@ -123,16 +127,35 @@ function ReportView({
           </section>
         ) : null}
 
-        <footer className="pt-6 border-t border-darkscore-border text-xs text-text-muted">
-          Not financial advice. Generated{" "}
-          {new Date(report.generatedAt).toLocaleString()} · Data as of{" "}
-          {new Date(report.dataAsOf).toLocaleString()}.
-        </footer>
+        <SourceFooter
+          sources={report.sourceAttribution}
+          generatedAt={report.generatedAt}
+          narrative={report.narrative}
+        />
       </div>
 
       <ClipboardExport reportData={report} />
     </main>
   );
+}
+
+/**
+ * W5-3: derive whether `Fwd P/E` was AI-estimated by reading the marker the
+ * report generator placed in the `Forward P/E` valuation card item. Returns
+ * the encoded confidence level, or `null` when the value came from a
+ * provider (or no valuation cards were assembled).
+ */
+function pickFwdPeAiConfidence(
+  report: ReportData,
+): ForwardEstimateConfidence | null {
+  for (const card of report.valuationCards) {
+    for (const item of card.items) {
+      if (item.label === "Forward P/E") {
+        return parseAiNote(item.note).confidence;
+      }
+    }
+  }
+  return null;
 }
 
 function FundamentalsUnavailableNotice(): JSX.Element {
