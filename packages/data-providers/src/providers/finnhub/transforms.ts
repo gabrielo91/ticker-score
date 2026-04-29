@@ -125,7 +125,11 @@ export function transformKeyMetrics(metric: FinnhubMetricBlock | undefined): Key
   };
 }
 
-/** Look up a line item by XBRL `concept` (case-insensitive substring match). */
+/**
+ * Look up a line item by XBRL `concept` (case-insensitive exact match after
+ * stripping any namespace prefix — Finnhub returns concepts like
+ * `us-gaap_Revenues` for some filers).
+ */
 function findLineItem(
   items: ReadonlyArray<FinnhubLineItem>,
   ...needles: string[]
@@ -133,7 +137,9 @@ function findLineItem(
   for (const needle of needles) {
     const n = needle.toLowerCase();
     for (const item of items) {
-      if ((item.concept ?? "").toLowerCase() === n) {
+      const raw = (item.concept ?? "").toLowerCase();
+      const concept = raw.includes("_") ? raw.slice(raw.lastIndexOf("_") + 1) : raw;
+      if (concept === n) {
         return numOrNull(item.value);
       }
     }
@@ -194,6 +200,25 @@ export function transformQuarterlyResults(
     out.push(transformQuarter(entry, prior));
     if (out.length >= limit) break;
   }
+
+  // Fallback: some filers (e.g. Alphabet/GOOGL) only have annual (Q0/10-K)
+  // filings on Finnhub. Use those as "FY YYYY" entries so the report isn't
+  // empty.
+  if (out.length === 0) {
+    const annualByKey = new Map<string, FinnhubFinancialEntry>();
+    for (const entry of reported.data) {
+      if (entry.quarter !== 0) continue;
+      annualByKey.set(String(entry.year), entry);
+    }
+    for (const entry of reported.data) {
+      if (entry.quarter !== 0) continue;
+      const prior = annualByKey.get(String(entry.year - 1));
+      const q = transformQuarter(entry, prior);
+      out.push({ ...q, quarter: `FY ${entry.year}` });
+      if (out.length >= limit) break;
+    }
+  }
+
   return out;
 }
 
