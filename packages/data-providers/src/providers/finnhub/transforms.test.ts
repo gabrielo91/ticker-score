@@ -145,13 +145,71 @@ describe("transformQuarterlyResults", () => {
     expect(out[1]?.revenueGrowthYoYPercent).toBe(0);
   });
 
-  it("skips annual filings (quarter = 0)", () => {
+  it("prefers quarterly entries and ignores annual (quarter = 0) when both exist", () => {
     const reported: FinnhubFinancialsReported = {
       data: [
-        { year: 2024, quarter: 0, report: { bs: [], cf: [], ic: [] } },
+        { year: 2024, quarter: 0, report: { bs: [], cf: [], ic: [
+          { concept: "Revenues", value: 999 },
+        ] } },
+        { year: 2024, quarter: 1, report: { bs: [], cf: [], ic: [
+          { concept: "Revenues", value: 100 },
+          { concept: "OperatingIncomeLoss", value: 30 },
+          { concept: "EarningsPerShareDiluted", value: 1 },
+        ] } },
       ],
     };
-    expect(transformQuarterlyResults(reported, 4)).toEqual([]);
+    const out = transformQuarterlyResults(reported, 4);
+    expect(out).toHaveLength(1);
+    expect(out[0]?.quarter).toBe("Q1 2024");
+    expect(out[0]?.revenue).toBe(100);
+  });
+
+  it("reads revenue from us-gaap_ prefixed XBRL concepts", () => {
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        {
+          year: 2025,
+          quarter: 1,
+          report: {
+            bs: [],
+            cf: [],
+            ic: [
+              { concept: "us-gaap_Revenues", value: 100_000_000_000 },
+              { concept: "us-gaap_OperatingIncomeLoss", value: 30_000_000_000 },
+              { concept: "us-gaap_EarningsPerShareDiluted", value: 2.5 },
+            ],
+          },
+        },
+      ],
+    };
+    const out = transformQuarterlyResults(reported, 1);
+    expect(out[0]?.revenue).toBe(100_000_000_000);
+    expect(out[0]?.operatingIncome).toBe(30_000_000_000);
+    expect(out[0]?.eps).toBe(2.5);
+  });
+
+  it("falls back to Q0 (annual) filings when no quarterly data exists", () => {
+    const reported: FinnhubFinancialsReported = {
+      data: [
+        { year: 2025, quarter: 0, report: { bs: [], cf: [], ic: [
+          { concept: "us-gaap_Revenues", value: 400_000_000_000 },
+          { concept: "us-gaap_OperatingIncomeLoss", value: 120_000_000_000 },
+          { concept: "us-gaap_EarningsPerShareDiluted", value: 10.81 },
+        ] } },
+        { year: 2024, quarter: 0, report: { bs: [], cf: [], ic: [
+          { concept: "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax", value: 350_000_000_000 },
+          { concept: "us-gaap_OperatingIncomeLoss", value: 112_000_000_000 },
+          { concept: "us-gaap_EarningsPerShareDiluted", value: 8.04 },
+        ] } },
+      ],
+    };
+    const out = transformQuarterlyResults(reported, 2);
+    expect(out).toHaveLength(2);
+    expect(out[0]?.quarter).toBe("FY 2025");
+    expect(out[0]?.revenue).toBe(400_000_000_000);
+    expect(out[0]?.revenueGrowthYoYPercent).toBeCloseTo((400 - 350) / 350, 2);
+    expect(out[1]?.quarter).toBe("FY 2024");
+    expect(out[1]?.revenue).toBe(350_000_000_000);
   });
 
   it("reads revenue from `Revenue` (singular) — Alphabet/Google-style XBRL", () => {
